@@ -2,7 +2,9 @@
 
 import argparse
 import os
+import shutil
 import subprocess
+import tempfile
 
 import tatsu
 
@@ -13,68 +15,18 @@ GRAMMAR = '''
   step = name:ident dictionary:dictionary ;
   dictionary = '{' @:{ pair } '}' ;
   pair = key:ident ':' value:value ;
-  value = dictionary | call | boolean | ident | string ;
+  value = dictionary | call | boolean | var | string ;
   call = func:ident '(' args:{value} ')' ;
   boolean = "true" | "false" ;
   string = "'" @:/[^']*/ "'" ;
+  var = ident ;
   ident = /[a-zA-Z_-]+/ ;
 '''
 
-SCHEMA = {
-    'docker-build': {
-        'sudo': {
-            'type': 'boolean',
-            'required': False,
-            'count': '?',
-        },
-        'tag': {
-            'type': 'string',
-            'count': 1
-        },
-        'file': {
-            'type': 'path',
-            'count': 1
-        },
-        'path': {
-            'type': 'path',
-            'count': 1
-        }
-    },
-    'docker-run': {
-        'sudo': {
-            'type': 'boolean',
-            'count': '?',
-            'default': False,
-        },
-        'image': {
-            'type': 'string',
-            'count': 1,
-        },
-        'init': {
-            'type': 'boolean',
-            'count': '?',
-            'default': False
-        },
-        'volume': {
-            'type': 'dictionary',
-            'count': '*',
-            'keys': {
-                'host': {
-                    'type': 'string',
-                    'count': 1,
-                },
-                'container': {
-                    'type': 'string',
-                    'count': 1
-                }
-            }
-        },
-        'command': {
-            'type': 'string',
-            'count': 1,
-        }
-    }
-}
+
+class Var:
+    def __init__(self, name):
+        self.name = name
 
 
 class Semantics:
@@ -89,6 +41,9 @@ class Semantics:
     def dictionary(self, ast):
         return Dictionary(ast)
 
+    def var(self, ast):
+        return Var(ast)
+
 
 MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
 
@@ -102,9 +57,16 @@ class Context:
     def __init__(self, trask_file):
         self.trask_file = trask_file
         self.variables = {}
+        self.temp_dirs = []
 
     def repath(self, path):
-        return os.path.join(os.path.dirname(self.trask_file), path)
+        return os.path.abspath(
+            os.path.join(os.path.dirname(self.trask_file), path))
+
+    def resolve(self, var):
+        if isinstance(var, Var):
+            return self.variables[var.name]
+        return var
 
 
 class Dictionary:
@@ -131,33 +93,11 @@ class Dictionary:
             raise KeyError('missing key', key)
         return self.get(key)
 
-
-def validate_array(array, schema):
-    count = schema.get('count', 1)
-    elem_type = schema['type']
-
-    if count == '?' and len(array) not in (0, 1):
-        raise ValueError('expected zero or one elements')
-    elif count == '+' and len(array) < 1:
-        raise ValueError('expected one or more elements')
-    elif len(array) != count:
-        raise ValueError('expected {} elements'.format(count))
-
-    for elem in array:
-        if elem_type == 'boolean':
-            if not isinstance(elem, bool):
-                raise TypeError('value is not a boolean')
-        elif elem_type == 'dictionary':
-            if not isinstance(elem, dict):
-                raise TypeError('value is not a dictionary')
-            for key in elem:
-                validate_array(elem[key], schema['keys'][key])
-        else:
-            raise ValueError('invalid type name in schema')
+    def get_all(self, key):
+        return self.pairs[key]
 
 
 def handle_docker_build(ctx, keys):
-    print(keys.pairs)
     cmd = ['docker', 'build']
     if keys.get('sudo') is True:
         cmd = ['sudo'] + cmd
@@ -167,6 +107,43 @@ def handle_docker_build(ctx, keys):
     cmd += ['--file', ctx.repath(keys['file'])]
     cmd.append(ctx.repath(keys['path']))
     run_cmd(*cmd)
+
+
+def handle_docker_run(ctx, keys):
+    cmd = ['docker', 'run']
+    if keys.get('sudo') is True:
+        cmd = ['sudo'] + cmd
+    if keys.get('init') is True:
+        cmd.append('--init')
+    for volume in keys.get_all('volume'):
+        host = ctx.repath(volume['host'])
+        container = volume['container']
+        cmd += ['--volume', '{}:{}'.format(host, container)]
+    cmd.append(keys['image'])
+    cmd.append(keys['command'])
+    run_cmd(*cmd)
+
+
+def handle_create_temp_dir(ctx, keys):
+    var = keys['var']
+    temp_dir = tempfile.TemporaryDirectory()
+    ctx.temp_dirs.append(temp_dir)
+    ctx.variables[var] = temp_dir.name
+    print('mkdir', temp_dir.name)
+
+
+def handle_copy(ctx, keys):
+    dst = ctx.resolve(keys['dst'])
+    for src in keys.get_all('src'):
+        src = ctx.resolve(src)
+        src = ctx.repath(src)
+        if os.path.isdir(src):
+            newdir = os.path.join(dst, os.path.basename(src))
+            print('copy', src, newdir)
+            shutil.copytree(src, newdir)
+        else:
+            print('copy', src, dst)
+            shutil.copy2(src, dst)
 
 
 def main():
@@ -180,11 +157,15 @@ def main():
     ctx = Context(args.path)
 
     handlers = {
-        'docker-build': handle_docker_build
+        'docker-build': handle_docker_build,
+        'docker-run': handle_docker_run,
+        'create-temp-dir': handle_create_temp_dir,
+        'copy': handle_copy,
+        'scp': handle_scp,
     }
 
     for step in steps:
-        handlers[step['name']](ctx, step['map'])
+        handlers[step['name']](ctx, step['dictionary'])
 
 
 if __name__ == '__main__':

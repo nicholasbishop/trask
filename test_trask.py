@@ -21,28 +21,5 @@ class TestGrammar(unittest.TestCase):
         })
 
 
-class TestSchema(unittest.TestCase):
-    def test_validate_bool(self):
-        schema = {'type': 'boolean'}
-        trask.validate_array([True], schema)
-        with self.assertRaises(TypeError):
-            trask.validate_array(['myString'], schema)
-
-    def test_validate_dict(self):
-        schema = {
-            'type': 'dictionary',
-            'keys': {
-                'a': {
-                    'type': 'boolean',
-                }
-            }
-        }
-        trask.validate_array([{'a': [True]}], schema)
-        with self.assertRaises(KeyError):
-            trask.validate_array([{'b': [True]}], schema)
-        with self.assertRaises(TypeError):
-            trask.validate_array([{'a': ['blah']}], schema)
-
-
 if __name__ == '__main__':
     unittest.main()

@@ -30,12 +30,12 @@
       (condition-case nil
           (while t
             (backward-up-list 1)
-            (when (looking-at "{")
+            (when (looking-at "[[{]")
               (setq indent-col (+ indent-col trask-mode-indent-offset))))
         (error nil)))
     (save-excursion
       (back-to-indentation)
-      (when (and (looking-at "}") (>= indent-col trask-mode-indent-offset))
+      (when (and (looking-at "[]}]") (>= indent-col trask-mode-indent-offset))
         (setq indent-col (- indent-col trask-mode-indent-offset))))
     (indent-line-to indent-col)))
 
