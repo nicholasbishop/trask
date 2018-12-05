@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
 import os
 import shutil
 import subprocess
@@ -15,13 +14,14 @@ GRAMMAR = '''
   top = { step } $ ;
   step = name:ident dictionary:dictionary ;
   dictionary = '{' @:{ pair } '}' ;
+  list = '[' @:{ value } ']' ;
   pair = key:ident value:value ;
-  value = dictionary | call | boolean | var | string ;
+  value = dictionary | list | call | boolean | var | string ;
   call = func:ident '(' args:{value} ')' ;
   boolean = "true" | "false" ;
   string = "'" @:/[^']*/ "'" ;
   var = ident ;
-  ident = /[a-zA-Z_-]+/ ;
+  ident = /[a-zA-Z0-9_-]+/ ;
 '''
 
 
@@ -191,7 +191,7 @@ def main():
     args = parser.parse_args()
 
     with open(args.path) as rfile:
-        steps = json.load(rfile)
+        steps = MODEL.parse(rfile.read())
 
     ctx = Context(args.path)
 
