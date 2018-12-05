@@ -7,6 +7,24 @@ import shutil
 import subprocess
 import tempfile
 
+import tatsu
+
+GRAMMAR = '''
+  @@grammar::Trask
+  @@eol_comments :: /#.*?$/
+  top = { step } $ ;
+  step = name:ident dictionary:dictionary ;
+  dictionary = '{' @:{ pair } '}' ;
+  pair = key:ident value:value ;
+  value = dictionary | call | boolean | var | string ;
+  call = func:ident '(' args:{value} ')' ;
+  boolean = "true" | "false" ;
+  string = "'" @:/[^']*/ "'" ;
+  var = ident ;
+  ident = /[a-zA-Z_-]+/ ;
+'''
+
+
 class Var:
     def __init__(self, name):
         self.name = name
@@ -26,6 +44,9 @@ class Semantics:
 
     def var(self, ast):
         return Var(ast)
+
+
+MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
 
 
 def run_cmd(*cmd):

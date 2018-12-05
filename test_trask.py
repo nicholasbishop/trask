@@ -13,8 +13,8 @@ class TestGrammar(unittest.TestCase):
     def test_string(self):
         self.assertEqual(trask.MODEL.parse("'myString'", 'string'), 'myString')
 
-    def test_map(self):
-        text = '{a: b\nc: d\nc: e}'
+    def test_dictionary(self):
+        text = "{a 'b'\nc 'd'\nc 'e'}"
         self.assertEqual(trask.MODEL.parse(text, 'dictionary').pairs, {
             'a': ['b'],
             'c': ['d', 'e'],
