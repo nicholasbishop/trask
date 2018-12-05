@@ -1,28 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
 import tempfile
-
-import tatsu
-
-GRAMMAR = '''
-  @@grammar::Trask
-  @@eol_comments :: /#.*?$/
-  top = { step } $ ;
-  step = name:ident dictionary:dictionary ;
-  dictionary = '{' @:{ pair } '}' ;
-  pair = key:ident ':' value:value ;
-  value = dictionary | call | boolean | var | string ;
-  call = func:ident '(' args:{value} ')' ;
-  boolean = "true" | "false" ;
-  string = "'" @:/[^']*/ "'" ;
-  var = ident ;
-  ident = /[a-zA-Z_-]+/ ;
-'''
-
 
 class Var:
     def __init__(self, name):
@@ -43,9 +26,6 @@ class Semantics:
 
     def var(self, ast):
         return Var(ast)
-
-
-MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
 
 
 def run_cmd(*cmd):
@@ -97,6 +77,33 @@ class Dictionary:
         return self.pairs[key]
 
 
+def create_dockerfile(obj):
+    lines = ['FROM ' + obj['from']]
+    for recipe in obj['recipes']:
+        recipe_name = recipe['recipe']
+        if recipe_name == 'yum-install':
+            lines.append('RUN yum install -y ' +
+                         ' '.join(recipe['packages']))
+        elif recipe_name == 'install-rust':
+            lines += ['RUN curl -o /rustup.sh https://sh.rustup.rs',
+                      'RUN sh /rustup.sh -y',
+                      'ENV PATH=$PATH:/root/.cargo/bin']
+            channel = recipe.get('channel')
+            if channel == 'nightly':
+                lines.append('RUN rustup default nightly')
+            else:
+                raise ValueError('unknown rust channel: ' + channel)
+        elif recipe_name == 'install-nodejs':
+            lines += [
+                'RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash',
+                'RUN . ~/.nvm/nvm.sh && nvm install 10.13.0 && npm install -g ' +
+                ' '.join(recipe.get('packages'))
+            ]
+            
+    lines.append('WORKDIR ' + obj['workdir'])
+    return '\n'.join(lines)
+
+
 def handle_docker_build(ctx, keys):
     cmd = ['docker', 'build']
     if keys.get('sudo') is True:
@@ -104,9 +111,16 @@ def handle_docker_build(ctx, keys):
     tag = keys.get('tag')
     if tag is not None:
         cmd += ['--tag', tag]
-    cmd += ['--file', ctx.repath(keys['file'])]
-    cmd.append(ctx.repath(keys['path']))
-    run_cmd(*cmd)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        dockerfile_path = os.path.join(temp_dir, 'Dockerfile')
+        with open(dockerfile_path, 'w') as wfile:
+            wfile.write(create_dockerfile(keys))
+            print(create_dockerfile(keys))
+        # cmd += ['--file', ctx.repath(keys['file'])]
+        cmd += ['--file', dockerfile_path]
+        # cmd.append(ctx.repath(keys['path']))
+        cmd.append(temp_dir)
+        run_cmd(*cmd)
 
 
 def handle_docker_run(ctx, keys):
@@ -115,12 +129,12 @@ def handle_docker_run(ctx, keys):
         cmd = ['sudo'] + cmd
     if keys.get('init') is True:
         cmd.append('--init')
-    for volume in keys.get_all('volume'):
+    for volume in keys.get('volumes', []):
         host = ctx.repath(volume['host'])
         container = volume['container']
         cmd += ['--volume', '{}:{}'.format(host, container)]
     cmd.append(keys['image'])
-    cmd.append(keys['command'])
+    cmd += ['sh', '-c', ' && '.join(keys['commands'])]
     run_cmd(*cmd)
 
 
@@ -134,7 +148,7 @@ def handle_create_temp_dir(ctx, keys):
 
 def handle_copy(ctx, keys):
     dst = ctx.resolve(keys['dst'])
-    for src in keys.get_all('src'):
+    for src in keys['src']:
         src = ctx.resolve(src)
         src = ctx.repath(src)
         if os.path.isdir(src):
@@ -146,13 +160,17 @@ def handle_copy(ctx, keys):
             shutil.copy2(src, dst)
 
 
+def handle_scp():
+    pass
+
+
 def main():
     parser = argparse.ArgumentParser(description='run a trask file')
     parser.add_argument('path')
     args = parser.parse_args()
 
     with open(args.path) as rfile:
-        steps = MODEL.parse(rfile.read())
+        steps = json.load(rfile)
 
     ctx = Context(args.path)
 
@@ -165,7 +183,7 @@ def main():
     }
 
     for step in steps:
-        handlers[step['name']](ctx, step['dictionary'])
+        handlers[step['recipe']](ctx, step)
 
 
 if __name__ == '__main__':

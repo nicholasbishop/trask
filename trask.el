@@ -15,7 +15,7 @@
 
 (defconst trask-mode-font-lock-defaults
   `((
-     ("\\([a-zA-Z-_]+\\) {" . (1 font-lock-function-name-face))
+     ("^\\([a-zA-Z0-9-_]+\\) {" . (1 font-lock-function-name-face))
      ( ,(regexp-opt trask-mode-keywords 'words) . font-lock-builtin-face)
      )))
 
