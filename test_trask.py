@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# pylint: disable=missing-docstring
+
 import unittest
 
 import trask

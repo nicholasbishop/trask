@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# TODO: remove this
+# pylint: disable=missing-docstring
+
 import argparse
 import os
 import shutil
@@ -37,6 +40,7 @@ class Call:
 
 
 class Semantics:
+    # pylint: disable=no-self-use
     def boolean(self, ast):
         if ast == 'true':
             return True
@@ -82,7 +86,7 @@ class Context:
         if isinstance(val, Var):
             return self.variables[val.name]
         elif isinstance(val, Call):
-            return self.funcs[val.name](ctx, val.args)
+            return self.funcs[val.name](self, val.args)
         return val
 
 
@@ -103,8 +107,11 @@ def create_dockerfile(obj):
                 raise ValueError('unknown rust channel: ' + channel)
         elif recipe_name == 'install-nodejs':
             nodejs_version = recipe['version']
+            nvm_version = 'v0.33.11'
+            url = ('https://raw.githubusercontent.com/' +
+                   'creationix/nvm/{}/install.sh'.format(nvm_version))
             lines += [
-                'RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash',
+                'RUN curl -o- {} | bash'.format(url),
                 'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.
                 format(nodejs_version) + ' '.join(recipe.get('pkg'))
             ]
@@ -116,7 +123,7 @@ def create_dockerfile(obj):
 def handle_docker_build(ctx, keys):
     cmd = ['docker', 'build']
     cmd = ['sudo'] + cmd  # TODO
-    tag = keys.get('tag')
+    tag = ctx.resolve(keys.get('tag'))
     if tag is not None:
         cmd += ['--tag', tag]
     with tempfile.TemporaryDirectory() as temp_dir:
