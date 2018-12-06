@@ -12,7 +12,7 @@ GRAMMAR = '''
   @@grammar::Trask
   @@eol_comments :: /#.*?$/
   top = { step } $ ;
-  step = name:ident dictionary:dictionary ;
+  step = name:ident recipe:dictionary ;
   dictionary = '{' @:{ pair } '}' ;
   list = '[' @:{ value } ']' ;
   pair = key:ident value:value ;
@@ -30,6 +30,12 @@ class Var:
         self.name = name
 
 
+class Call:
+    def __init__(self, ast):
+        self.name = ast['name']
+        self.args = ast['args']
+
+
 class Semantics:
     def boolean(self, ast):
         if ast == 'true':
@@ -40,10 +46,13 @@ class Semantics:
             raise ValueError(ast)
 
     def dictionary(self, ast):
-        return Dictionary(ast)
+        return dict((pair['key'], pair['value']) for pair in ast)
 
     def var(self, ast):
         return Var(ast)
+
+    def call(self, ast):
+        return Call(ast)
 
 
 MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
@@ -54,57 +63,37 @@ def run_cmd(*cmd):
     subprocess.check_call(cmd)
 
 
+
+def get_from_env(ctx, args):
+    return 'TODO'
+
+
 class Context:
     def __init__(self, trask_file):
         self.trask_file = trask_file
         self.variables = {}
         self.temp_dirs = []
+        self.funcs = {
+            'env': get_from_env
+        }
 
     def repath(self, path):
         return os.path.abspath(
             os.path.join(os.path.dirname(self.trask_file), path))
 
-    def resolve(self, var):
-        if isinstance(var, Var):
-            return self.variables[var.name]
-        return var
-
-
-class Dictionary:
-    def __init__(self, pairs):
-        self.pairs = {}
-        for pair in pairs:
-            key = pair['key']
-            value = pair['value']
-            if key not in self.pairs:
-                self.pairs[key] = []
-            self.pairs[key].append(value)
-
-    def get(self, key):
-        if key not in self.pairs:
-            return None
-        values = self.pairs.get(key, [])
-        if len(values) == 1:
-            return values[0]
-        else:
-            raise KeyError('multiple values for key', key)
-
-    def __getitem__(self, key):
-        if key not in self.pairs:
-            raise KeyError('missing key', key)
-        return self.get(key)
-
-    def get_all(self, key):
-        return self.pairs[key]
+    def resolve(self, val):
+        if isinstance(val, Var):
+            return self.variables[val.name]
+        elif isinstance(val, Call):
+            return self.funcs[val.name](ctx, val.args)
+        return val
 
 
 def create_dockerfile(obj):
     lines = ['FROM ' + obj['from']]
-    for recipe in obj['recipes']:
-        recipe_name = recipe['recipe']
+    for recipe_name, recipe in obj['recipes'].items():
         if recipe_name == 'yum-install':
-            lines.append('RUN yum install -y ' +
-                         ' '.join(recipe['packages']))
+            lines.append('RUN yum install -y ' + ' '.join(recipe['pkg']))
         elif recipe_name == 'install-rust':
             lines += ['RUN curl -o /rustup.sh https://sh.rustup.rs',
                       'RUN sh /rustup.sh -y',
@@ -115,10 +104,12 @@ def create_dockerfile(obj):
             else:
                 raise ValueError('unknown rust channel: ' + channel)
         elif recipe_name == 'install-nodejs':
+            nodejs_version = recipe['version']
             lines += [
                 'RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash',
-                'RUN . ~/.nvm/nvm.sh && nvm install 10.13.0 && npm install -g ' +
-                ' '.join(recipe.get('packages'))
+                'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.format(
+                    nodejs_version) +
+                ' '.join(recipe.get('pkg'))
             ]
             
     lines.append('WORKDIR ' + obj['workdir'])
@@ -127,8 +118,7 @@ def create_dockerfile(obj):
 
 def handle_docker_build(ctx, keys):
     cmd = ['docker', 'build']
-    if keys.get('sudo') is True:
-        cmd = ['sudo'] + cmd
+    cmd = ['sudo'] + cmd  # TODO
     tag = keys.get('tag')
     if tag is not None:
         cmd += ['--tag', tag]
@@ -146,8 +136,7 @@ def handle_docker_build(ctx, keys):
 
 def handle_docker_run(ctx, keys):
     cmd = ['docker', 'run']
-    if keys.get('sudo') is True:
-        cmd = ['sudo'] + cmd
+    cmd = ['sudo'] + cmd  # TODO
     if keys.get('init') is True:
         cmd.append('--init')
     for volume in keys.get('volumes', []):
@@ -181,9 +170,19 @@ def handle_copy(ctx, keys):
             shutil.copy2(src, dst)
 
 
-def handle_scp():
-    pass
+def handle_upload(ctx, keys):
+    identity = ctx.resolve(keys['identity'])
+    user = ctx.resolve(keys['user'])
+    host = ctx.resolve(keys['host'])
+    src = ctx.resolve(keys['src'])
+    dst = ctx.resolve(keys['dst'])
+    replace = ctx.resolve(keys.get('replace', False))
+    target = '{}@{}'.format(user, host)
 
+    if replace is True:
+        run_cmd('ssh', '-i', identity, target, 'rm', '-r', dst)
+
+    run_cmd('scp', '-i',  identity, '-r', src, '{}:{}'.format(target, dst))
 
 def main():
     parser = argparse.ArgumentParser(description='run a trask file')
@@ -200,11 +199,11 @@ def main():
         'docker-run': handle_docker_run,
         'create-temp-dir': handle_create_temp_dir,
         'copy': handle_copy,
-        'scp': handle_scp,
+        'upload': handle_upload,
     }
 
     for step in steps:
-        handlers[step['recipe']](ctx, step)
+        handlers[step['name']](ctx, step['recipe'])
 
 
 if __name__ == '__main__':
