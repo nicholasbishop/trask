@@ -63,7 +63,6 @@ def run_cmd(*cmd):
     subprocess.check_call(cmd)
 
 
-
 def get_from_env(ctx, args):
     return 'TODO'
 
@@ -73,9 +72,7 @@ class Context:
         self.trask_file = trask_file
         self.variables = {}
         self.temp_dirs = []
-        self.funcs = {
-            'env': get_from_env
-        }
+        self.funcs = {'env': get_from_env}
 
     def repath(self, path):
         return os.path.abspath(
@@ -95,9 +92,10 @@ def create_dockerfile(obj):
         if recipe_name == 'yum-install':
             lines.append('RUN yum install -y ' + ' '.join(recipe['pkg']))
         elif recipe_name == 'install-rust':
-            lines += ['RUN curl -o /rustup.sh https://sh.rustup.rs',
-                      'RUN sh /rustup.sh -y',
-                      'ENV PATH=$PATH:/root/.cargo/bin']
+            lines += [
+                'RUN curl -o /rustup.sh https://sh.rustup.rs',
+                'RUN sh /rustup.sh -y', 'ENV PATH=$PATH:/root/.cargo/bin'
+            ]
             channel = recipe.get('channel')
             if channel == 'nightly':
                 lines.append('RUN rustup default nightly')
@@ -107,11 +105,10 @@ def create_dockerfile(obj):
             nodejs_version = recipe['version']
             lines += [
                 'RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash',
-                'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.format(
-                    nodejs_version) +
-                ' '.join(recipe.get('pkg'))
+                'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.
+                format(nodejs_version) + ' '.join(recipe.get('pkg'))
             ]
-            
+
     lines.append('WORKDIR ' + obj['workdir'])
     return '\n'.join(lines)
 
@@ -182,7 +179,8 @@ def handle_upload(ctx, keys):
     if replace is True:
         run_cmd('ssh', '-i', identity, target, 'rm', '-r', dst)
 
-    run_cmd('scp', '-i',  identity, '-r', src, '{}:{}'.format(target, dst))
+    run_cmd('scp', '-i', identity, '-r', src, '{}:{}'.format(target, dst))
+
 
 def main():
     parser = argparse.ArgumentParser(description='run a trask file')
