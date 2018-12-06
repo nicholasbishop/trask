@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 
+import attr
 import tatsu
 
 GRAMMAR = '''
@@ -33,10 +34,10 @@ class Var:
         self.name = name
 
 
+@attr.s
 class Call:
-    def __init__(self, ast):
-        self.name = ast['name']
-        self.args = ast['args']
+    name = attr.ib()
+    args = attr.ib()
 
 
 class Semantics:
@@ -56,7 +57,7 @@ class Semantics:
         return Var(ast)
 
     def call(self, ast):
-        return Call(ast)
+        return Call(ast['func'], ast['args'])
 
 
 MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())

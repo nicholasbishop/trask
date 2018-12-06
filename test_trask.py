@@ -15,16 +15,20 @@ class TestGrammar(unittest.TestCase):
     def test_string(self):
         self.assertEqual(trask.MODEL.parse("'myString'", 'string'), 'myString')
 
+    def test_call(self):
+        self.assertEqual(trask.MODEL.parse("myFunc('myArg')", 'call'),
+                         trask.Call('myFunc', ['myArg']))
+
     def test_list(self):
         self.assertEqual(
             trask.MODEL.parse("['a' 'b' 'c']", 'list'), ['a', 'b', 'c'])
 
     def test_dictionary(self):
-        text = "{a 'b'\nc 'd'\nc 'e'}"
+        text = "{a 'b'\nc 'd'}"
         self.assertEqual(
-            trask.MODEL.parse(text, 'dictionary').pairs, {
-                'a': ['b'],
-                'c': ['d', 'e'],
+            trask.MODEL.parse(text, 'dictionary'), {
+                'a': 'b',
+                'c': 'd',
             })
 
 
