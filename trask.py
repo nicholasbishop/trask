@@ -67,8 +67,9 @@ def run_cmd(*cmd):
     subprocess.check_call(cmd)
 
 
-def get_from_env(ctx, args):
-    return 'TODO'
+def get_from_env(_, args):
+    key = args[0]
+    return os.environ[key]
 
 
 class Context:
