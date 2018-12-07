@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='trask',
-    version='0.1.2',
+    version='0.1.3',
     description='Declarative recipe-based task runner',
     url='https://github.com/nicholasbishop/trask',
     author='Nicholas Bishop',
