@@ -32,5 +32,16 @@ class TestGrammar(unittest.TestCase):
             })
 
 
+class TestDockerfile(unittest.TestCase):
+    def test_rust(self):
+        lines1 = trask.docker_install_rust({})
+        lines2 = trask.docker_install_rust({'channel': 'stable'})
+        lines3 = trask.docker_install_rust({'channel': 'nightly'})
+        self.assertEqual(lines1, lines2)
+        self.assertEqual(len(lines1) + 1, len(lines3))
+        with self.assertRaises(ValueError):
+            trask.docker_install_rust({'channel': 'badChannel'})
+
+
 if __name__ == '__main__':
     unittest.main()
