@@ -154,7 +154,7 @@ def handle_docker_run(ctx, keys):
     for volume in keys.get('volumes', []):
         host = ctx.repath(volume['host'])
         container = volume['container']
-        cmd += ['--volume', '{}:{}'.format(host, container)]
+        cmd += ['--volume', '{}:{}:z'.format(host, container)]
     cmd.append(keys['image'])
     cmd += ['sh', '-c', ' && '.join(keys['commands'])]
     run_cmd(*cmd)
