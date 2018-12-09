@@ -4,6 +4,8 @@
 
 import unittest
 
+from pyfakefs import fake_filesystem_unittest
+
 import trask
 
 
@@ -41,6 +43,22 @@ class TestDockerfile(unittest.TestCase):
         self.assertEqual(len(lines1) + 1, len(lines3))
         with self.assertRaises(ValueError):
             trask.docker_install_rust({'channel': 'badChannel'})
+
+
+class TestInclude(fake_filesystem_unittest.TestCase):
+    def setUp(self):
+        self.setUpPyfakefs()
+
+    def test_missing_file(self):
+        with self.assertRaises(OSError):
+            ctx = trask.Context('/foo')
+            trask.handle_include(ctx, {'file': '/this/file/does/not/exist'})
+
+    def test_include(self):
+        self.fs.create_file('/myFile')
+        ctx = trask.Context('/foo')
+        trask.handle_include(ctx, {'file': '/myFile'})
+        self.assertEqual(ctx.trask_file, '/foo')
 
 
 if __name__ == '__main__':

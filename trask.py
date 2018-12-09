@@ -182,6 +182,14 @@ def handle_copy(ctx, keys):
             shutil.copy2(src, dst)
 
 
+def handle_include(ctx, keys):
+    path = ctx.repath(ctx.resolve(keys['file']))
+    orig_trask_file = ctx.trask_file
+    ctx.trask_file = path
+    run_trask_file(ctx, path)
+    ctx.trask_file = orig_trask_file
+
+
 def handle_upload(ctx, keys):
     identity = ctx.resolve(keys['identity'])
     user = ctx.resolve(keys['user'])
@@ -197,26 +205,31 @@ def handle_upload(ctx, keys):
     run_cmd('scp', '-i', identity, '-r', src, '{}:{}'.format(target, dst))
 
 
-def main():
-    parser = argparse.ArgumentParser(description='run a trask file')
-    parser.add_argument('path')
-    args = parser.parse_args()
-
-    with open(args.path) as rfile:
+def run_trask_file(ctx, path):
+    with open(path) as rfile:
         steps = MODEL.parse(rfile.read())
-
-    ctx = Context(args.path)
 
     handlers = {
         'docker-build': handle_docker_build,
         'docker-run': handle_docker_run,
         'create-temp-dir': handle_create_temp_dir,
         'copy': handle_copy,
+        'include': handle_include,
         'upload': handle_upload,
     }
 
     for step in steps:
         handlers[step['name']](ctx, step['recipe'])
+
+
+def main():
+    parser = argparse.ArgumentParser(description='run a trask file')
+    parser.add_argument('path')
+    args = parser.parse_args()
+
+    ctx = Context(args.path)
+
+    run_trask_file(ctx, args.path)
 
 
 if __name__ == '__main__':
