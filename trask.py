@@ -210,6 +210,15 @@ def handle_upload(ctx, keys):
     run_cmd('scp', '-i', identity, '-r', src, '{}:{}'.format(target, dst))
 
 
+def handle_ssh(ctx, obj):
+    identity = ctx.resolve(obj['identity'])
+    user = ctx.resolve(obj['user'])
+    host = ctx.resolve(obj['host'])
+    commands = obj['commands']
+    target = '{}@{}'.format(user, host)
+    run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
+
+
 def run_trask_file(ctx, path):
     with open(path) as rfile:
         steps = MODEL.parse(rfile.read())
@@ -220,6 +229,8 @@ def run_trask_file(ctx, path):
         'create-temp-dir': handle_create_temp_dir,
         'copy': handle_copy,
         'include': handle_include,
+        'set': handle_set,
+        'ssh': handle_ssh,
         'upload': handle_upload,
     }
 
