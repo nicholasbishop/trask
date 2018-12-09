@@ -18,8 +18,9 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(trask.MODEL.parse("'myString'", 'string'), 'myString')
 
     def test_call(self):
-        self.assertEqual(trask.MODEL.parse("myFunc('myArg')", 'call'),
-                         trask.Call('myFunc', ['myArg']))
+        self.assertEqual(
+            trask.MODEL.parse("myFunc('myArg')", 'call'),
+            trask.Call('myFunc', ['myArg']))
 
     def test_list(self):
         self.assertEqual(

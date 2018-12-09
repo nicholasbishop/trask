@@ -94,8 +94,8 @@ class Context:
 
 def docker_install_rust(recipe):
     lines = [
-        'RUN curl -o /rustup.sh https://sh.rustup.rs',
-        'RUN sh /rustup.sh -y', 'ENV PATH=$PATH:/root/.cargo/bin'
+        'RUN curl -o /rustup.sh https://sh.rustup.rs', 'RUN sh /rustup.sh -y',
+        'ENV PATH=$PATH:/root/.cargo/bin'
     ]
     channel = recipe.get('channel', 'stable')
     if channel != 'stable':
