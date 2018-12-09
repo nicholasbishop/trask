@@ -61,5 +61,12 @@ class TestInclude(fake_filesystem_unittest.TestCase):
         self.assertEqual(ctx.trask_file, '/foo')
 
 
+class TestSet(unittest.TestCase):
+    def test_set(self):
+        ctx = trask.Context('/foo')
+        trask.handle_set(ctx, {'key': 'val'})
+        self.assertEqual(ctx.variables, {'key': 'val'})
+
+
 if __name__ == '__main__':
     unittest.main()

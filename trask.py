@@ -190,6 +190,11 @@ def handle_include(ctx, keys):
     ctx.trask_file = orig_trask_file
 
 
+def handle_set(ctx, obj):
+    for key in obj:
+        ctx.variables[key] = ctx.resolve(obj[key])
+
+
 def handle_upload(ctx, keys):
     identity = ctx.resolve(keys['identity'])
     user = ctx.resolve(keys['user'])
