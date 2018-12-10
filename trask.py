@@ -205,7 +205,7 @@ def handle_upload(ctx, keys):
     target = '{}@{}'.format(user, host)
 
     if replace is True:
-        run_cmd('ssh', '-i', identity, target, 'rm', '-r', dst)
+        run_cmd('ssh', '-i', identity, target, 'rm', '-fr', dst)
 
     run_cmd('scp', '-i', identity, '-r', src, '{}:{}'.format(target, dst))
 
