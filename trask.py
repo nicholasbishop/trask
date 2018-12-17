@@ -123,6 +123,8 @@ def create_dockerfile(obj):
                 'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.
                 format(nodejs_version) + ' '.join(recipe.get('pkg'))
             ]
+        elif recipe_name == 'pip3-install':
+            lines.append('RUN pip3 install ' + ' '.join(recipe['pkg']))
 
     lines.append('WORKDIR ' + obj['workdir'])
     return '\n'.join(lines)
