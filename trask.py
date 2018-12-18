@@ -4,6 +4,7 @@
 # pylint: disable=missing-docstring
 
 import argparse
+import collections
 import os
 import shutil
 import subprocess
@@ -51,7 +52,8 @@ class Semantics:
             raise ValueError(ast)
 
     def dictionary(self, ast):
-        return dict((pair['key'], pair['value']) for pair in ast)
+        return collections.OrderedDict(
+            (pair['key'], pair['value']) for pair in ast)
 
     def var(self, ast):
         return Var(ast)
