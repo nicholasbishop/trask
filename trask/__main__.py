@@ -4,7 +4,8 @@ import trask
 
 
 def main():
-    parser = argparse.ArgumentParser(description='run a trask file')
+    parser = argparse.ArgumentParser(
+        prog='trask', description='run a trask file')
     parser.add_argument('path')
     args = parser.parse_args()
 
