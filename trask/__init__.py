@@ -1,7 +1,6 @@
 # TODO: remove this
 # pylint: disable=missing-docstring
 
-import argparse
 import collections
 import os
 import shutil
@@ -240,13 +239,3 @@ def run_trask_file(ctx, path):
 
     for step in steps:
         handlers[step['name']](ctx, step['recipe'])
-
-
-def main():
-    parser = argparse.ArgumentParser(description='run a trask file')
-    parser.add_argument('path')
-    args = parser.parse_args()
-
-    ctx = Context(args.path)
-
-    run_trask_file(ctx, args.path)
