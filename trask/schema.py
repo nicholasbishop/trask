@@ -100,8 +100,8 @@ class Semantics:
             kind=Kind.Array,
             array_type=Type(
                 kind=Kind.Object,
-                fields=dict((Key(pair['name']), pair['recipe'])
-                            for pair in ast)))
+                fields=dict(
+                    (Key(pair['name']), pair['recipe']) for pair in ast)))
 
     def dictionary(self, ast):
         return Type(
