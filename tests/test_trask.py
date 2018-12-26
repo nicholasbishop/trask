@@ -160,8 +160,8 @@ class TestLoad(fake_filesystem_unittest.TestCase):
 
     def test_resolve_call(self):
         os.environ['test-variable'] = 'foo'
-        self.fs.create_file('/myFile',
-                            contents="foo { key env('test-variable') }")
+        self.fs.create_file(
+            '/myFile', contents="foo { key env('test-variable') }")
         self.fs.create_file('/expected', contents="foo { key 'foo' }")
         result = trask.load_trask_file(trask.Context(), '/myFile')
         expected = trask.load_trask_file(trask.Context(), '/expected')

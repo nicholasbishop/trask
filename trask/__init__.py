@@ -259,7 +259,7 @@ def resolve(ctx, val):
             new_steps = load_trask_file(ctx, path)
             ctx.trask_file = orig_trask_file
             return new_steps
-        elif new_val.name =='set':
+        elif new_val.name == 'set':
             for key in obj:
                 ctx.variables[key] = new_val[key]
             return []
