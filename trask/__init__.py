@@ -272,8 +272,8 @@ def resolve(ctx, val):
             ctx.trask_file = orig_trask_file
             return new_steps
         elif new_val.name == 'set':
-            for key in obj:
-                ctx.variables[key] = new_val[key]
+            for key in new_val.recipe:
+                ctx.variables[key] = new_val.recipe[key]
             return []
         else:
             return [new_val]
