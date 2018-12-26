@@ -87,14 +87,14 @@ class Semantics:
         return Key(name=ast['name'], is_required=is_required)
 
     def top(self, ast):
-        return Type(kind=Kind.Object,
-                    fields=dict((Key(pair['name']), pair['recipe'])
-                                for pair in ast))
+        return Type(
+            kind=Kind.Object,
+            fields=dict((Key(pair['name']), pair['recipe']) for pair in ast))
 
     def dictionary(self, ast):
-        return Type(kind=Kind.Object,
-                    fields=dict((pair['key'], pair['type'])
-                                for pair in ast))
+        return Type(
+            kind=Kind.Object,
+            fields=dict((pair['key'], pair['type']) for pair in ast))
 
     def primitive(self, ast):
         if ast == 'path':
@@ -107,7 +107,7 @@ class Semantics:
     def type(self, ast):
         inner = ast['inner']
         is_array = ast['array'] or False
-        choices = choices=ast['choices']
+        choices = choices = ast['choices']
         fields = None
         array_type = None
         if ast['array']:
@@ -116,10 +116,8 @@ class Semantics:
         elif isinstance(inner, Type):
             inner.choices = choices
             return inner
-        return Type(kind=kind,
-                    array_type=array_type,
-                    fields=fields,
-                    choices=choices)
+        return Type(
+            kind=kind, array_type=array_type, fields=fields, choices=choices)
 
 
 MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
@@ -130,20 +128,26 @@ with open('schema3') as rfile:
 #from pprint import pprint
 #pprint(SCHEMA)
 
+
 class SchemaError(ValueError):
     pass
+
 
 class MissingKey(SchemaError):
     pass
 
+
 class InvalidKey(SchemaError):
     pass
+
 
 class TypeMismatch(SchemaError):
     pass
 
+
 class InvalidChoice(SchemaError):
     pass
+
 
 def validate(top, schema=SCHEMA):
     for name, recipe in top.items():

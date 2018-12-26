@@ -9,6 +9,7 @@ from pyfakefs import fake_filesystem_unittest
 import trask
 import trask_schema
 
+
 class TestGrammar(unittest.TestCase):
     def test_bool(self):
         self.assertIs(trask.MODEL.parse('true', 'boolean'), True)
