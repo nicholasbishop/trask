@@ -1,10 +1,11 @@
+import collections
 import os
 
 import attr
 import tatsu
 
 GRAMMAR = '''
-  @@grammar::Trask
+  @@grammar::TraskSchema
   @@eol_comments :: /#.*?$/
   top = { step } $ ;
   step = name:ident recipe:dictionary ;
@@ -41,33 +42,39 @@ class Type:
     choices = attr.ib(default=None)
     fields = attr.ib(default=None)
 
-    def validate(self, val):
+    def validate(self, val, path=None):
+        if path is None:
+            path = []
+
+        print(self)
+        print(val)
+
         if self.kind == Kind.Bool:
             if not isinstance(val, bool):
-                raise TypeMismatch()
+                raise TypeMismatch(path)
         elif self.kind == Kind.String:
             if not isinstance(val, str):
-                raise TypeMismatch()
+                raise TypeMismatch(path)
         elif self.kind == Kind.Path:
             if not isinstance(val, str):
-                raise TypeMismatch()
+                raise TypeMismatch(path)
         elif self.kind == Kind.Array:
             if not isinstance(val, list):
-                raise TypeMismatch()
-            for elem in val:
-                self.array_type.validate(elem)
+                raise TypeMismatch(path)
+            for index, elem in enumerate(val):
+                self.array_type.validate(elem, path + [index])
         elif self.kind == Kind.Object:
-            if not isinstance(val, dict):
-                raise TypeMismatch()
+            if not isinstance(val, collections.abc.Mapping):
+                raise TypeMismatch(path)
             if not self.wildcard_key():
                 for key in val:
                     if Key(key) not in self.fields:
-                        raise InvalidKey()
-                    self.fields[Key(key)].validate(val[key])
+                        raise InvalidKey(path, key)
+                    self.fields[Key(key)].validate(val[key], path + [key])
             for key in self.fields:
                 if key.is_required:
                     if key.name not in val:
-                        raise MissingKey()
+                        raise MissingKey(path)
 
         if self.choices is not None:
             if val not in self.choices:
@@ -90,8 +97,11 @@ class Semantics:
 
     def top(self, ast):
         return Type(
-            kind=Kind.Object,
-            fields=dict((Key(pair['name']), pair['recipe']) for pair in ast))
+            kind=Kind.Array,
+            array_type=Type(
+                kind=Kind.Object,
+                fields=dict((Key(pair['name']), pair['recipe'])
+                            for pair in ast)))
 
     def dictionary(self, ast):
         return Type(
@@ -150,8 +160,3 @@ class TypeMismatch(SchemaError):
 
 class InvalidChoice(SchemaError):
     pass
-
-
-def validate(top, schema=SCHEMA):
-    for name, recipe in top.items():
-        validate_recipe(name, recipe, schema)
