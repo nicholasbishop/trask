@@ -7,7 +7,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 import trask
-
+import trask_schema
 
 class TestGrammar(unittest.TestCase):
     def test_bool(self):
@@ -67,6 +67,74 @@ class TestSet(unittest.TestCase):
         ctx = trask.Context('/foo')
         trask.handle_set(ctx, {'key': 'val'})
         self.assertEqual(ctx.variables, {'key': 'val'})
+
+
+def make_schema(string):
+    return trask_schema.MODEL.parse(string)
+
+
+class TestSchema(unittest.TestCase):
+    def test_empty(self):
+        trask_schema.validate({}, {})
+
+    def test_wildcard(self):
+        schema = make_schema("foo { *: string; }")
+        schema.validate({'foo': {'a': 'b'}})
+
+    def test_invalid_recipe_name(self):
+        schema = make_schema("")
+        with self.assertRaises(trask_schema.InvalidKey):
+            schema.validate({'bad-recipe': {}})
+
+    def test_invalid_key(self):
+        schema = make_schema("foo { bar: string; }")
+        with self.assertRaises(trask_schema.InvalidKey):
+            schema.validate({'foo': {'bad-key': {}}})
+
+    def test_missing_key(self):
+        schema = make_schema("foo { required bar: string; }")
+        with self.assertRaises(trask_schema.MissingKey):
+            schema.validate({'foo': {}})
+
+    def test_string(self):
+        schema = make_schema("foo { bar: string; }")
+        schema.validate({'foo': {'bar': 'baz'}})
+        with self.assertRaises(trask_schema.TypeMismatch):
+            schema.validate({'foo': {'bar': True}})
+
+    def test_bool(self):
+        schema = make_schema("foo { bar: bool; }")
+        schema.validate({'foo': {'bar': True}})
+        with self.assertRaises(trask_schema.TypeMismatch):
+            schema.validate({'foo': {'bar': 'baz'}})
+
+    def test_path(self):
+        schema = make_schema("foo { bar: path; }")
+        schema.validate({'foo': {'bar': 'baz'}})
+        with self.assertRaises(trask_schema.TypeMismatch):
+            schema.validate({'foo': {'bar': True}})
+
+    def test_choice(self):
+        schema = make_schema("foo { bar: string choices('x', 'y'); }")
+        schema.validate({'foo': {'bar': 'x'}})
+        with self.assertRaises(trask_schema.InvalidChoice):
+            schema.validate({'foo': {'bar': 'z'}})
+
+    def test_string_array(self):
+        schema = make_schema("foo { bar: string[]; }")
+        schema.validate({'foo': {'bar': ['x']}})
+        with self.assertRaises(trask_schema.TypeMismatch):
+            schema.validate({'foo': {'bar': [True]}})
+        with self.assertRaises(trask_schema.TypeMismatch):
+            schema.validate({'foo': {'bar': 'x'}})
+
+    def test_object_array(self):
+        schema = make_schema("foo { bar: { baz: string; }[]; }")
+        schema.validate({'foo': {'bar': [{'baz': 'x'}]}})
+        with self.assertRaises(trask_schema.TypeMismatch):
+            schema.validate({'foo': {'bar': [True]}})
+        with self.assertRaises(trask_schema.TypeMismatch):
+            schema.validate({'foo': {'bar': 'baz'}})
 
 
 if __name__ == '__main__':

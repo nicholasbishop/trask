@@ -1,0 +1,63 @@
+include {
+  required file: path;
+}
+
+create-temp-dir {
+  required var: string;
+}
+
+set {
+  *: string;
+}
+
+docker-build {
+  tag: string;
+  required from: string;
+  recipes: {
+    yum-install: {
+      pkg: string[];
+    };
+    install-rust: {
+      channel: string choices('nightly', 'stable');
+    };
+    install-nodejs: {
+      version: string;
+      pkg: string[];
+    };
+    pip3-install: {
+      pkg: string[];
+    };
+  };
+  workdir: string;
+}
+
+docker-run {
+  required image: string;
+  init: bool;
+  volumes: {
+    required host: path;
+    required container: string;
+  }[];
+  required commands: string[];
+}
+
+copy {
+  required src: path[];
+  required dst: path;
+}
+
+upload {
+  replace: bool;
+  identity: path;
+  required user: string;
+  required host: string;
+  required src: path;
+  required dst: string;
+}
+
+ssh {
+  identity: path;
+  required user: string;
+  required host: string;
+  required commands: string[];
+}
