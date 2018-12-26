@@ -97,7 +97,7 @@ def get_from_env(_, args):
 
 class Context:
     def __init__(self, trask_file=None):
-        self.trask_file = None
+        self.trask_file = trask_file
         self.variables = {}
         self.temp_dirs = []
         self.funcs = {'env': get_from_env}
