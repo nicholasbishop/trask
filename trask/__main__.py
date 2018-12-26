@@ -1,0 +1,3 @@
+import trask
+
+trask.main()
