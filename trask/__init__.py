@@ -11,6 +11,8 @@ import tempfile
 import attr
 import tatsu
 
+from trask import schema
+
 GRAMMAR = '''
   @@grammar::Trask
   @@eol_comments :: /#.*?$/
