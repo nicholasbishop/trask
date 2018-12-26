@@ -7,4 +7,7 @@ lint:
 format:
 	python3 -m yapf -i *.py trask/*.py tests/*.py
 
-.PHONY: dist lint format
+test:
+	python3 -m unittest discover tests
+
+.PHONY: dist lint format test
