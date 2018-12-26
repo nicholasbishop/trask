@@ -40,6 +40,12 @@ class Call:
     args = attr.ib()
 
 
+@attr.s
+class Step:
+    name = attr.ib()
+    recipe = attr.ib()
+
+
 class Semantics:
     # pylint: disable=no-self-use
     def boolean(self, ast):
@@ -49,6 +55,9 @@ class Semantics:
             return False
         else:
             raise ValueError(ast)
+
+    def step(self, ast):
+        return Step(ast.name, ast.recipe)
 
     def dictionary(self, ast):
         return collections.OrderedDict(
@@ -75,8 +84,8 @@ def get_from_env(_, args):
 
 
 class Context:
-    def __init__(self, trask_file):
-        self.trask_file = trask_file
+    def __init__(self, trask_file=None):
+        self.trask_file = None
         self.variables = {}
         self.temp_dirs = []
         self.funcs = {'env': get_from_env}
@@ -239,3 +248,49 @@ def run_trask_file(ctx, path):
 
     for step in steps:
         handlers[step['name']](ctx, step['recipe'])
+
+
+def resolve(ctx, val):
+    if isinstance(val, Step):
+        new_val = Step(val.name, resolve(ctx, val.recipe))
+        if new_val.name == 'include' and 'file' in new_val.recipe:
+            path = ctx.repath(new_val.recipe['file'])
+            orig_trask_file = ctx.trask_file
+            new_steps = load_trask_file(ctx, path)
+            ctx.trask_file = orig_trask_file
+            return new_steps
+        elif new_val.name =='set':
+            for key in obj:
+                ctx.variables[key] = new_val[key]
+            return []
+        else:
+            return [new_val]
+    elif isinstance(val, Var):
+        return ctx.resolve(val)
+    elif isinstance(val, Call):
+        return ctx.resolve(val)
+    elif isinstance(val, collections.OrderedDict):
+        new_val = {}
+        for key in val:
+            new_val[key] = resolve(ctx, val[key])
+        return new_val
+    elif isinstance(val, list):
+        new_val = []
+        for elem in val:
+            new_val.append(resolve(elem))
+        return new_val
+    else:
+        return val
+
+
+def load_trask_file(ctx, path):
+    ctx.trask_file = path
+
+    with open(path) as rfile:
+        steps = MODEL.parse(rfile.read())
+
+    new_steps = []
+    for step in steps:
+        new_steps += resolve(ctx, step)
+
+    return new_steps

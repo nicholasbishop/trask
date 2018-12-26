@@ -2,6 +2,7 @@
 
 # pylint: disable=missing-docstring
 
+import os
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
@@ -46,20 +47,20 @@ class TestDockerfile(unittest.TestCase):
             trask.docker_install_rust({'channel': 'badChannel'})
 
 
-class TestInclude(fake_filesystem_unittest.TestCase):
-    def setUp(self):
-        self.setUpPyfakefs()
+# class TestInclude(fake_filesystem_unittest.TestCase):
+#     def setUp(self):
+#         self.setUpPyfakefs()
 
-    def test_missing_file(self):
-        with self.assertRaises(OSError):
-            ctx = trask.Context('/foo')
-            trask.handle_include(ctx, {'file': '/this/file/does/not/exist'})
+#     def test_missing_file(self):
+#         with self.assertRaises(OSError):
+#             ctx = trask.Context('/foo')
+#             trask.handle_include(ctx, {'file': '/this/file/does/not/exist'})
 
-    def test_include(self):
-        self.fs.create_file('/myFile')
-        ctx = trask.Context('/foo')
-        trask.handle_include(ctx, {'file': '/myFile'})
-        self.assertEqual(ctx.trask_file, '/foo')
+#     def test_include(self):
+#         self.fs.create_file('/myFile')
+#         ctx = trask.Context('/foo')
+#         trask.handle_include(ctx, {'file': '/myFile'})
+#         self.assertEqual(ctx.trask_file, '/foo')
 
 
 class TestSet(unittest.TestCase):
@@ -135,6 +136,43 @@ class TestSchema(unittest.TestCase):
             schema.validate({'foo': {'bar': [True]}})
         with self.assertRaises(trask.schema.TypeMismatch):
             schema.validate({'foo': {'bar': 'baz'}})
+
+
+class TestLoad(fake_filesystem_unittest.TestCase):
+    def setUp(self):
+        self.setUpPyfakefs()
+
+    def test_empty(self):
+        self.fs.create_file('/myFile')
+        ctx = trask.Context()
+        result = trask.load_trask_file(ctx, '/myFile')
+        self.assertEqual(result, [])
+        self.assertEqual(ctx.trask_file, '/myFile')
+
+    def test_resolve_var(self):
+        self.fs.create_file('/myFile', contents='foo { key var }')
+        self.fs.create_file('/expected', contents="foo { key 'foo' }")
+        ctx = trask.Context()
+        ctx.variables['var'] = 'foo'
+        result = trask.load_trask_file(ctx, '/myFile')
+        expected = trask.load_trask_file(trask.Context(), '/expected')
+        self.assertEqual(result, expected)
+
+    def test_resolve_call(self):
+        os.environ['test-variable'] = 'foo'
+        self.fs.create_file('/myFile',
+                            contents="foo { key env('test-variable') }")
+        self.fs.create_file('/expected', contents="foo { key 'foo' }")
+        result = trask.load_trask_file(trask.Context(), '/myFile')
+        expected = trask.load_trask_file(trask.Context(), '/expected')
+        self.assertEqual(result, expected)
+
+    def test_include(self):
+        self.fs.create_file('/a', contents="include { file '/b' }")
+        self.fs.create_file('/b', contents="foo {} bar {}")
+        result = trask.load_trask_file(trask.Context(), '/a')
+        expected = trask.load_trask_file(trask.Context(), '/b')
+        self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':
