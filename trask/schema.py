@@ -1,3 +1,5 @@
+import os
+
 import attr
 import tatsu
 
@@ -122,7 +124,8 @@ class Semantics:
 
 MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
 
-with open('schema3') as rfile:
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(SCRIPT_DIR, 'schema')) as rfile:
     SCHEMA = MODEL.parse(rfile.read())
 
 #from pprint import pprint
