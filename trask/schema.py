@@ -46,9 +46,6 @@ class Type:
         if path is None:
             path = []
 
-        print(self)
-        print(val)
-
         if self.kind == Kind.Bool:
             if not isinstance(val, bool):
                 raise TypeMismatch(path)
@@ -137,9 +134,6 @@ MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(SCRIPT_DIR, 'schema')) as rfile:
     SCHEMA = MODEL.parse(rfile.read())
-
-#from pprint import pprint
-#pprint(SCHEMA)
 
 
 class SchemaError(ValueError):
