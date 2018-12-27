@@ -138,7 +138,7 @@ def create_dockerfile(obj):
     return '\n'.join(lines)
 
 
-def handle_docker_build(ctx, keys):
+def handle_docker_build(keys):
     cmd = ['docker', 'build']
     cmd = ['sudo'] + cmd  # TODO
     tag = ctx.resolve(keys.get('tag'))
@@ -156,7 +156,7 @@ def handle_docker_build(ctx, keys):
         run_cmd(*cmd)
 
 
-def handle_docker_run(ctx, keys):
+def handle_docker_run(keys):
     cmd = ['docker', 'run']
     cmd = ['sudo'] + cmd  # TODO
     if keys.get('init') is True:
@@ -170,7 +170,7 @@ def handle_docker_run(ctx, keys):
     run_cmd(*cmd)
 
 
-def handle_create_temp_dir(ctx, keys):
+def handle_create_temp_dir(keys):
     var = keys['var']
     temp_dir = tempfile.TemporaryDirectory()
     ctx.temp_dirs.append(temp_dir)
@@ -178,7 +178,7 @@ def handle_create_temp_dir(ctx, keys):
     print('mkdir', temp_dir.name)
 
 
-def handle_copy(ctx, keys):
+def handle_copy(keys):
     dst = ctx.resolve(keys['dst'])
     for src in keys['src']:
         src = ctx.resolve(src)
@@ -192,7 +192,7 @@ def handle_copy(ctx, keys):
             shutil.copy2(src, dst)
 
 
-def handle_include(ctx, keys):
+def handle_include(keys):
     path = ctx.repath(ctx.resolve(keys['file']))
     orig_trask_file = ctx.trask_file
     ctx.trask_file = path
@@ -200,12 +200,7 @@ def handle_include(ctx, keys):
     ctx.trask_file = orig_trask_file
 
 
-def handle_set(ctx, obj):
-    for key in obj:
-        ctx.variables[key] = ctx.resolve(obj[key])
-
-
-def handle_upload(ctx, keys):
+def handle_upload(keys):
     identity = ctx.resolve(keys['identity'])
     user = ctx.resolve(keys['user'])
     host = ctx.resolve(keys['host'])

@@ -47,29 +47,6 @@ class TestDockerfile(unittest.TestCase):
             trask.docker_install_rust({'channel': 'badChannel'})
 
 
-# class TestInclude(fake_filesystem_unittest.TestCase):
-#     def setUp(self):
-#         self.setUpPyfakefs()
-
-#     def test_missing_file(self):
-#         with self.assertRaises(OSError):
-#             ctx = trask.Context('/foo')
-#             trask.handle_include(ctx, {'file': '/this/file/does/not/exist'})
-
-#     def test_include(self):
-#         self.fs.create_file('/myFile')
-#         ctx = trask.Context('/foo')
-#         trask.handle_include(ctx, {'file': '/myFile'})
-#         self.assertEqual(ctx.trask_file, '/foo')
-
-
-class TestSet(unittest.TestCase):
-    def test_set(self):
-        ctx = trask.Context('/foo')
-        trask.handle_set(ctx, {'key': 'val'})
-        self.assertEqual(ctx.variables, {'key': 'val'})
-
-
 def make_schema(string):
     return trask.schema.MODEL.parse(string)
 
