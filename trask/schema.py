@@ -1,8 +1,11 @@
 import collections
+import keyword
 import os
 
 import attr
 import tatsu
+
+from trask import types
 
 GRAMMAR = '''
   @@grammar::TraskSchema
@@ -33,6 +36,17 @@ class Kind:
 class Key:
     name = attr.ib()
     is_required = attr.ib(default=False, cmp=False, hash=False)
+
+
+def make_keys_safe(dct):
+    """Modify the keys in |dct| to be valid attribute names."""
+    result = {}
+    for key, val in dct.items():
+        key = key.replace('-', '_')
+        if key in keyword.kwlist:
+            key = key + '_'
+        result[key] = val
+    return result
 
 
 @attr.s
@@ -67,6 +81,10 @@ class Type:
             for index, elem in enumerate(val):
                 new_val.append(self.array_type.validate(elem, path + [index]))
             result = new_val
+        elif self.kind == Kind.Object and isinstance(val, types.Step):
+            result = types.Step(
+                val.name, self.fields[Key(val.name)].validate(
+                    val.recipe, path + [val.name]))
         elif self.kind == Kind.Object:
             if not isinstance(val, collections.abc.Mapping):
                 raise TypeMismatch(path)
@@ -83,8 +101,13 @@ class Type:
                 if key.is_required:
                     if key.name not in val:
                         raise MissingKey(path)
-            cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
-            result = cls(**temp_obj)
+                    temp_obj = make_keys_safe(temp_obj)
+            # TODO, hacky
+            if val.__class__.__name__ == 'Step':
+                pass
+            else:
+                cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
+                result = cls(**temp_obj)
 
         if self.choices is not None:
             if val not in self.choices:

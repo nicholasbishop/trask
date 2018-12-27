@@ -10,7 +10,7 @@ import tempfile
 import attr
 import tatsu
 
-from trask import schema
+from trask import schema, types
 
 GRAMMAR = '''
   @@grammar::Trask
@@ -40,24 +40,6 @@ class Call:
     args = attr.ib()
 
 
-@attr.s
-class Step(collections.Mapping):
-    name = attr.ib()
-    recipe = attr.ib()
-
-    def as_dict(self):
-        return {self.name: self.recipe}
-
-    def __len__(self):
-        return len(self.as_dict())
-
-    def __getitem__(self, key):
-        return self.as_dict()[key]
-
-    def __iter__(self):
-        return iter(self.as_dict())
-
-
 class Semantics:
     # pylint: disable=no-self-use
     def boolean(self, ast):
@@ -69,7 +51,7 @@ class Semantics:
             raise ValueError(ast)
 
     def step(self, ast):
-        return Step(ast.name, ast.recipe)
+        return types.Step(ast.name, ast.recipe)
 
     def dictionary(self, ast):
         return collections.OrderedDict(
@@ -243,28 +225,9 @@ def handle_ssh(ctx, obj):
     run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
 
 
-def run_trask_file(ctx, path):
-    with open(path) as rfile:
-        steps = MODEL.parse(rfile.read())
-
-    handlers = {
-        'docker-build': handle_docker_build,
-        'docker-run': handle_docker_run,
-        'create-temp-dir': handle_create_temp_dir,
-        'copy': handle_copy,
-        'include': handle_include,
-        'set': handle_set,
-        'ssh': handle_ssh,
-        'upload': handle_upload,
-    }
-
-    for step in steps:
-        handlers[step['name']](ctx, step['recipe'])
-
-
 def resolve(ctx, val):
-    if isinstance(val, Step):
-        new_val = Step(val.name, resolve(ctx, val.recipe))
+    if isinstance(val, types.Step):
+        new_val = types.Step(val.name, resolve(ctx, val.recipe))
         if new_val.name == 'include' and 'file' in new_val.recipe:
             path = ctx.repath(new_val.recipe['file'])
             orig_trask_file = ctx.trask_file
@@ -306,3 +269,18 @@ def load_trask_file(ctx, path):
         new_steps += resolve(ctx, step)
 
     return new_steps
+
+
+def run(steps):
+    handlers = {
+        'docker-build': handle_docker_build,
+        'docker-run': handle_docker_run,
+        'create-temp-dir': handle_create_temp_dir,
+        'copy': handle_copy,
+        'ssh': handle_ssh,
+        'upload': handle_upload,
+    }
+
+    for step in steps:
+        print(step)
+        handlers[step.name](ctx, step.recipe)

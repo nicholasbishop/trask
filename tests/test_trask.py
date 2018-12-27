@@ -140,11 +140,11 @@ class TestSchema(unittest.TestCase):
 
     def test_validate_result(self):
         schema = make_schema("foo { bar: string; }")
-        result = schema.validate([{'foo': {'bar': 'baz'}}])
+        result = schema.validate([trask.types.Step('foo', {'bar': 'baz'})])
         self.assertEqual(len(result), 1)
         obj = result[0]
-        self.assertEqual(obj.__class__.__name__, 'SchemaClass')
-        obj = obj.foo
+        self.assertTrue(isinstance(obj, trask.types.Step))
+        obj = obj.recipe
         self.assertEqual(obj.__class__.__name__, 'SchemaClass')
         obj = obj.bar
         self.assertEqual(obj, 'baz')
@@ -182,7 +182,7 @@ class TestLoad(fake_filesystem_unittest.TestCase):
     def test_resolve_list(self):
         self.fs.create_file('/myFile', contents="foo { key ['a'] }")
         result = trask.load_trask_file(trask.Context(), '/myFile')
-        self.assertEqual(result, [trask.Step('foo', {'key': ['a']})])
+        self.assertEqual(result, [trask.types.Step('foo', {'key': ['a']})])
 
     def test_set(self):
         self.fs.create_file('/myFile', contents="set { a 'b' }")
