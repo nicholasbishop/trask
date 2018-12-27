@@ -179,6 +179,11 @@ class TestLoad(fake_filesystem_unittest.TestCase):
         expected = trask.load_trask_file(trask.Context(), '/expected')
         self.assertEqual(result, expected)
 
+    def test_resolve_list(self):
+        self.fs.create_file('/myFile', contents="foo { key ['a'] }")
+        result = trask.load_trask_file(trask.Context(), '/myFile')
+        self.assertEqual(result, [trask.Step('foo', {'key': ['a']})])
+
     def test_set(self):
         self.fs.create_file('/myFile', contents="set { a 'b' }")
         ctx = trask.Context()
