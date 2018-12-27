@@ -112,7 +112,9 @@ class TestSchema(unittest.TestCase):
 
     def test_path(self):
         schema = make_schema("foo { bar: path; }")
-        schema.validate([{'foo': {'bar': 'baz'}}])
+        result = schema.validate(
+            [trask.types.Step('foo', {'bar': 'baz'}, '/myPath')])
+        self.assertEqual(result[0].recipe.bar, '/myPath/baz')
         with self.assertRaises(trask.schema.TypeMismatch):
             schema.validate([{'foo': {'bar': True}}])
 
@@ -140,7 +142,8 @@ class TestSchema(unittest.TestCase):
 
     def test_validate_result(self):
         schema = make_schema("foo { bar: string; }")
-        result = schema.validate([trask.types.Step('foo', {'bar': 'baz'})])
+        result = schema.validate(
+            [trask.types.Step('foo', {'bar': 'baz'}, None)])
         self.assertEqual(len(result), 1)
         obj = result[0]
         self.assertTrue(isinstance(obj, trask.types.Step))
@@ -159,7 +162,7 @@ class TestLoad(fake_filesystem_unittest.TestCase):
         ctx = trask.Context()
         result = trask.load_trask_file(ctx, '/myFile')
         self.assertEqual(result, [])
-        self.assertEqual(ctx.trask_file, '/myFile')
+        self.assertEqual(ctx.path, '/')
 
     def test_resolve_var(self):
         self.fs.create_file('/myFile', contents='foo { key var }')
@@ -182,7 +185,8 @@ class TestLoad(fake_filesystem_unittest.TestCase):
     def test_resolve_list(self):
         self.fs.create_file('/myFile', contents="foo { key ['a'] }")
         result = trask.load_trask_file(trask.Context(), '/myFile')
-        self.assertEqual(result, [trask.types.Step('foo', {'key': ['a']})])
+        self.assertEqual(result,
+                         [trask.types.Step('foo', {'key': ['a']}, '/')])
 
     def test_set(self):
         self.fs.create_file('/myFile', contents="set { a 'b' }")

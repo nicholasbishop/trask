@@ -51,7 +51,7 @@ class Semantics:
             raise ValueError(ast)
 
     def step(self, ast):
-        return types.Step(ast.name, ast.recipe)
+        return types.Step(ast.name, ast.recipe, None)
 
     def dictionary(self, ast):
         return collections.OrderedDict(
@@ -79,14 +79,18 @@ def get_from_env(_, args):
 
 class Context:
     def __init__(self, trask_file=None):
-        self.trask_file = trask_file
+        self.path = None
+        self.set_path_from_file(trask_file)
         self.variables = {}
         self.temp_dirs = []
         self.funcs = {'env': get_from_env}
 
+    def set_path_from_file(self, trask_file):
+        if trask_file is not None:
+            self.path = os.path.abspath(os.path.dirname(trask_file))
+
     def repath(self, path):
-        return os.path.abspath(
-            os.path.join(os.path.dirname(self.trask_file), path))
+        return os.path.abspath(os.path.join(self.path, path))
 
     def resolve(self, val):
         if isinstance(val, Var):
@@ -227,12 +231,12 @@ def handle_ssh(ctx, obj):
 
 def resolve(ctx, val):
     if isinstance(val, types.Step):
-        new_val = types.Step(val.name, resolve(ctx, val.recipe))
+        new_val = types.Step(val.name, resolve(ctx, val.recipe), ctx.path)
         if new_val.name == 'include' and 'file' in new_val.recipe:
             path = ctx.repath(new_val.recipe['file'])
-            orig_trask_file = ctx.trask_file
+            orig_path = ctx.path
             new_steps = load_trask_file(ctx, path)
-            ctx.trask_file = orig_trask_file
+            ctx.path = orig_path
             return new_steps
         elif new_val.name == 'set':
             for key in new_val.recipe:
@@ -259,7 +263,7 @@ def resolve(ctx, val):
 
 
 def load_trask_file(ctx, path):
-    ctx.trask_file = path
+    ctx.set_path_from_file(path)
 
     with open(path) as rfile:
         steps = MODEL.parse(rfile.read())
@@ -282,5 +286,4 @@ def run(steps):
     }
 
     for step in steps:
-        print(step)
-        handlers[step.name](ctx, step.recipe)
+        handlers[step.name](step.recipe)

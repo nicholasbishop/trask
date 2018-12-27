@@ -56,7 +56,7 @@ class Type:
     choices = attr.ib(default=None)
     fields = attr.ib(default=None)
 
-    def validate(self, val, path=None):
+    def validate(self, val, step=None, path=None):
         if path is None:
             path = []
 
@@ -73,18 +73,19 @@ class Type:
         elif self.kind == Kind.Path:
             if not isinstance(val, str):
                 raise TypeMismatch(path)
-            result = val
+            result = os.path.abspath(os.path.join(step.path, val))
         elif self.kind == Kind.Array:
             if not isinstance(val, list):
                 raise TypeMismatch(path)
             new_val = []
             for index, elem in enumerate(val):
-                new_val.append(self.array_type.validate(elem, path + [index]))
+                new_val.append(
+                    self.array_type.validate(elem, step, path + [index]))
             result = new_val
         elif self.kind == Kind.Object and isinstance(val, types.Step):
-            result = types.Step(
-                val.name, self.fields[Key(val.name)].validate(
-                    val.recipe, path + [val.name]))
+            fields = self.fields[Key(val.name)].validate(
+                val.recipe, val, path + [val.name])
+            result = types.Step(val.name, fields, val.path)
         elif self.kind == Kind.Object:
             if not isinstance(val, collections.abc.Mapping):
                 raise TypeMismatch(path)
@@ -94,20 +95,18 @@ class Type:
                     if Key(key) not in self.fields:
                         raise InvalidKey(path, key)
                     temp_obj[key] = self.fields[Key(key)].validate(
-                        val[key], path + [key])
+                        val[key], step, path + [key])
             for key in self.fields:
                 if key.name not in temp_obj and key.name != '*':
                     temp_obj[key.name] = None
                 if key.is_required:
                     if key.name not in val:
                         raise MissingKey(path)
-                    temp_obj = make_keys_safe(temp_obj)
-            # TODO, hacky
-            if val.__class__.__name__ == 'Step':
-                pass
-            else:
-                cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
-                result = cls(**temp_obj)
+            temp_obj = make_keys_safe(temp_obj)
+            cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
+            result = cls(**temp_obj)
+        else:
+            raise ValueError('invalid schema kind')
 
         if self.choices is not None:
             if val not in self.choices:
