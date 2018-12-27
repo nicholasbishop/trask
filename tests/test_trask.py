@@ -81,7 +81,7 @@ class TestSchema(unittest.TestCase):
 
     def test_wildcard(self):
         schema = make_schema("foo { *: string; }")
-        schema.validate([{'foo': {'a': 'b'}}])
+        result = schema.validate([{'foo': {'a': 'b'}}])
 
     def test_invalid_recipe_name(self):
         schema = make_schema("")
@@ -137,6 +137,17 @@ class TestSchema(unittest.TestCase):
             schema.validate([{'foo': {'bar': [True]}}])
         with self.assertRaises(trask.schema.TypeMismatch):
             schema.validate([{'foo': {'bar': 'baz'}}])
+
+    def test_validate_result(self):
+        schema = make_schema("foo { bar: string; }")
+        result = schema.validate([{'foo': {'bar': 'baz'}}])
+        self.assertEqual(len(result), 1)
+        obj = result[0]
+        self.assertEqual(obj.__class__.__name__, 'SchemaClass')
+        obj = obj.foo
+        self.assertEqual(obj.__class__.__name__, 'SchemaClass')
+        obj = obj.bar
+        self.assertEqual(obj, 'baz')
 
 
 class TestLoad(fake_filesystem_unittest.TestCase):

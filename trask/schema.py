@@ -46,36 +46,50 @@ class Type:
         if path is None:
             path = []
 
+        result = None
+
         if self.kind == Kind.Bool:
             if not isinstance(val, bool):
                 raise TypeMismatch(path)
+            result = val
         elif self.kind == Kind.String:
             if not isinstance(val, str):
                 raise TypeMismatch(path)
+            result = val
         elif self.kind == Kind.Path:
             if not isinstance(val, str):
                 raise TypeMismatch(path)
+            result = val
         elif self.kind == Kind.Array:
             if not isinstance(val, list):
                 raise TypeMismatch(path)
+            new_val = []
             for index, elem in enumerate(val):
-                self.array_type.validate(elem, path + [index])
+                new_val.append(self.array_type.validate(elem, path + [index]))
+            result = new_val
         elif self.kind == Kind.Object:
             if not isinstance(val, collections.abc.Mapping):
                 raise TypeMismatch(path)
+            temp_obj = {}
             if not self.wildcard_key():
                 for key in val:
                     if Key(key) not in self.fields:
                         raise InvalidKey(path, key)
-                    self.fields[Key(key)].validate(val[key], path + [key])
+                    temp_obj[key] = self.fields[Key(key)].validate(val[key], path + [key])
             for key in self.fields:
+                if key.name not in temp_obj and key.name != '*':
+                    temp_obj[key.name] = None
                 if key.is_required:
                     if key.name not in val:
                         raise MissingKey(path)
+            cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
+            result = cls(**temp_obj)
 
         if self.choices is not None:
             if val not in self.choices:
                 raise InvalidChoice()
+
+        return result
 
     def wildcard_key(self):
         if self.kind == Kind.Object:
