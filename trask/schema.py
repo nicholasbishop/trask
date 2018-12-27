@@ -75,7 +75,8 @@ class Type:
                 for key in val:
                     if Key(key) not in self.fields:
                         raise InvalidKey(path, key)
-                    temp_obj[key] = self.fields[Key(key)].validate(val[key], path + [key])
+                    temp_obj[key] = self.fields[Key(key)].validate(
+                        val[key], path + [key])
             for key in self.fields:
                 if key.name not in temp_obj and key.name != '*':
                     temp_obj[key.name] = None

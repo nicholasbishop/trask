@@ -12,7 +12,7 @@ def main():
     ctx = trask.Context()
     root = trask.load_trask_file(ctx, args.path)
     root = trask.schema.SCHEMA.validate(root)
-    
+
     trask.run(root)
 
 
