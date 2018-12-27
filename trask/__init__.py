@@ -289,7 +289,7 @@ def resolve(ctx, val):
     elif isinstance(val, list):
         new_val = []
         for elem in val:
-            new_val.append(resolve(elem))
+            new_val.append(resolve(ctx, elem))
         return new_val
     else:
         return val
