@@ -126,7 +126,7 @@ class Phase2:
                     if isinstance(val.recipe[key], str):
                         self.variables[key] = types.Kind.String
                     elif isinstance(val.recipe[key], bool):
-                        self.variables[key] = types.Kind.Boolean
+                        self.variables[key] = types.Kind.Bool
                     else:
                         raise SchemaError('invalid variable type')
             return types.Step(val.name, fields, val.path)
