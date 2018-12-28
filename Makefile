@@ -1,3 +1,7 @@
+coverage:
+	python3 -m coverage run --branch --omit '*site-packages*' -m unittest discover -b tests && \
+	python3 -m coverage html
+
 dist:
 	python3 setup.py sdist 
 
@@ -10,4 +14,4 @@ format:
 test:
 	python3 -m unittest discover -b tests
 
-.PHONY: dist lint format test
+.PHONY: coverage dist lint format test
