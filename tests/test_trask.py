@@ -7,6 +7,7 @@ import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
+import trask
 from trask import functions, phase1, phase2, phase3, types
 
 
@@ -323,6 +324,10 @@ class TestMakeKeysSafe(unittest.TestCase):
         self.assertEqual(phase2.make_keys_safe({'from': 1}), {'from_': 1})
 
 
+class Empty:
+    pass
+
+
 class TestPhase3(unittest.TestCase):
     def test_run_cmd(self):
         # pylint: disable=no-self-use
@@ -330,10 +335,15 @@ class TestPhase3(unittest.TestCase):
 
     def test_rust(self):
         ctx = phase3.Context()
-        lines1 = phase3.docker_install_rust({}, ctx)
-        lines2 = phase3.docker_install_rust({'channel': 'stable'}, ctx)
-        lines3 = phase3.docker_install_rust({'channel': 'nightly'}, ctx)
+        obj = Empty()
+        obj.channel = phase2.Value(None)
+        lines1 = phase3.docker_install_rust(obj, ctx)
+        obj.channel = phase2.Value('stable')
+        lines2 = phase3.docker_install_rust(obj, ctx)
+        obj.channel = phase2.Value('nightly')
+        lines3 = phase3.docker_install_rust(obj, ctx)
         self.assertEqual(lines1, lines2)
         self.assertEqual(len(lines1) + 1, len(lines3))
         with self.assertRaises(ValueError):
-            phase3.docker_install_rust({'channel': 'badChannel'}, ctx)
+            obj.channel = phase2.Value('badChannel')
+            phase3.docker_install_rust(obj, ctx)
