@@ -7,7 +7,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 import trask
-from trask import phase1, phase2
+from trask import phase1, phase2, types
 
 
 class TestGrammar(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestGrammar(unittest.TestCase):
     def test_call(self):
         self.assertEqual(
             phase1.MODEL.parse("myFunc('myArg')", 'call'),
-            trask.types.Call('myFunc', ['myArg']))
+            types.Call('myFunc', ['myArg']))
 
     def test_list(self):
         self.assertEqual(
@@ -125,10 +125,18 @@ class TestPhase2(unittest.TestCase):
         with self.assertRaises(phase2.InvalidChoice):
             phase2.Phase2.load(schema, 'foo')
 
+    def test_var(self):
+        schema = phase2.MODEL.parse('string', 'type')
+        result = phase2.Phase2.load(schema, types.Var('x'),
+                                    {'x': phase2.Kind.String})
+        self.assertEqual(result, types.Var('x'))
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, types.Var('x'), {'x': phase2.Kind.Bool})
+
     # def test_path(self):
     #     schema = make_schema("foo { bar: path; }")
     #     result = schema.validate(
-    #         [trask.types.Step('foo', {'bar': 'baz'}, '/myPath')])
+    #         [types.Step('foo', {'bar': 'baz'}, '/myPath')])
     #     self.assertEqual(result[0].recipe.bar, '/myPath/baz')
     #     with self.assertRaises(phase2.TypeMismatch):
     #         schema.validate([{'foo': {'bar': True}}])
@@ -152,10 +160,10 @@ class TestPhase2(unittest.TestCase):
     # def test_validate_result(self):
     #     schema = make_schema("foo { bar: string; }")
     #     result = schema.validate(
-    #         [trask.types.Step('foo', {'bar': 'baz'}, None)])
+    #         [types.Step('foo', {'bar': 'baz'}, None)])
     #     self.assertEqual(len(result), 1)
     #     obj = result[0]
-    #     self.assertTrue(isinstance(obj, trask.types.Step))
+    #     self.assertTrue(isinstance(obj, types.Step))
     #     obj = obj.recipe
     #     self.assertEqual(obj.__class__.__name__, 'SchemaClass')
     #     obj = obj.bar

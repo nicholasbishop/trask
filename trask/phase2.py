@@ -163,8 +163,10 @@ class Phase2:
             return result
 
     @classmethod
-    def load(cls, schema, val):
-        phase2 = cls(step=None, variables={})
+    def load(cls, schema, val, variables=None):
+        if variables is None:
+            variables = {}
+        phase2 = cls(step=None, variables=variables)
         return phase2.load_any(schema, val, [])
 
 
