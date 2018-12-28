@@ -7,9 +7,11 @@ import attr
 
 from trask import types
 
+
 @attr.s
 class Param:
     kind = attr.ib()
+
 
 @attr.s
 class Function:
@@ -25,6 +27,6 @@ def get_from_env(_, args):
 
 def get_functions():
     return {
-        'env': Function((Param(types.Kind.String),), types.Kind.String,
-                        get_from_env)
+        'env':
+        Function((Param(types.Kind.String), ), types.Kind.String, get_from_env)
     }
