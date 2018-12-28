@@ -63,12 +63,7 @@ class TestPhase1(fake_filesystem_unittest.TestCase):
             phase1.load('/a')
 
 
-class TestPhase2(unittest.TestCase):
-    def test_empty(self):
-        schema = phase2.MODEL.parse('')
-        result = phase2.Phase2.load(schema, [])
-        self.assertEqual(result, [])
-
+class TestPhase2Primitives(unittest.TestCase):
     def test_bool(self):
         schema = phase2.MODEL.parse('bool', 'type')
         result = phase2.Phase2.load(schema, True)
@@ -95,6 +90,13 @@ class TestPhase2(unittest.TestCase):
     def test_invalid_primitive(self):
         with self.assertRaises(ValueError):
             phase2.Semantics().primitive('bad-primitive')
+
+
+class TestPhase2(unittest.TestCase):
+    def test_empty(self):
+        schema = phase2.MODEL.parse('')
+        result = phase2.Phase2.load(schema, [])
+        self.assertEqual(result, [])
 
     def test_path(self):
         schema = phase2.MODEL.parse('path', 'type')
