@@ -50,7 +50,8 @@ class Value:
             result = ctx.resolve(self.data)
             if self.data.choices is not None:
                 if result not in self.data.choices:
-                    raise ChoiceError('invalid choice')
+                    raise InvalidChoice(result)
+            return result
         elif isinstance(self.data, types.Call):
             return ctx.call(self.data)
         else:

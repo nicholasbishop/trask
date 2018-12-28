@@ -2,6 +2,7 @@
 
 # pylint: disable=missing-docstring
 
+import os
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
@@ -206,3 +207,57 @@ class TestPhase2(unittest.TestCase):
     #     self.assertEqual(obj.__class__.__name__, 'SchemaClass')
     #     obj = obj.bar
     #     self.assertEqual(obj, 'baz')
+
+
+class TestValue(unittest.TestCase):
+    def test_bool(self):
+        self.assertEqual(phase2.Value(True).get(None), True)
+        self.assertEqual(phase2.Value(False).get(None), False)
+
+    def test_string(self):
+        self.assertEqual(phase2.Value('foo').get(None), 'foo')
+
+    def test_path(self):
+        class Context:
+            def repath(self, path):
+                return os.path.join('/root', path)
+
+        self.assertEqual(
+            phase2.Value('foo', is_path=True).get(Context()), '/root/foo')
+
+    def test_var(self):
+        this = self
+
+        class Context:
+            def resolve(self, var):
+                this.assertEqual(var.name, 'foo')
+                return 'myResult'
+
+        self.assertEqual(
+            phase2.Value(types.Var('foo')).get(Context()), 'myResult')
+
+    def test_var_choices(self):
+        class Context:
+            def resolve(self, var):
+                return 'z'
+
+        self.assertEqual(
+            phase2.Value(types.Var('foo', choices=('x', 'z'))).get(Context()),
+            'z')
+        with self.assertRaises(phase2.InvalidChoice):
+            phase2.Value(types.Var('foo', choices=('x', 'y'))).get(Context())
+
+    def test_call(self):
+        this = self
+
+        class Context:
+            def call(self, call):
+                this.assertEqual(call.name, 'foo')
+                return 'myResult'
+
+        self.assertEqual(
+            phase2.Value(types.Call('foo', ())).get(Context()), 'myResult')
+
+    def test_invalid_value(self):
+        with self.assertRaises(TypeError):
+            phase2.Value(object()).get(None)
