@@ -95,6 +95,15 @@ class TestPhase2(unittest.TestCase):
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
+    def test_any(self):
+        schema = phase2.MODEL.parse('any', 'type')
+        result = phase2.Phase2.load(schema, 'myString')
+        self.assertEqual(result, phase2.Value('myString'))
+        result = phase2.Phase2.load(schema, True)
+        self.assertEqual(result, phase2.Value(True))
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, None)
+
     def test_path(self):
         schema = phase2.MODEL.parse('path', 'type')
         result = phase2.Phase2.load(schema, 'myPath')
@@ -267,3 +276,14 @@ class TestFunctions(unittest.TestCase):
     def test_get_from_env(self):
         os.environ['MY_TEST_VAR'] = 'my-test-value'
         self.assertEqual(functions.get_from_env(('MY_TEST_VAR',)), 'my-test-value')
+
+
+class TestMakeKeysSafe(unittest.TestCase):
+    def test_empty(self):
+        self.assertEqual(phase2.make_keys_safe({}), {})
+
+    def test_dash(self):
+        self.assertEqual(phase2.make_keys_safe({'-': 1}), {'_': 1})
+
+    def test_dash(self):
+        self.assertEqual(phase2.make_keys_safe({'from': 1}), {'from_': 1})
