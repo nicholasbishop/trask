@@ -322,5 +322,5 @@ class TestMakeKeysSafe(unittest.TestCase):
     def test_dash(self):
         self.assertEqual(phase2.make_keys_safe({'-': 1}), {'_': 1})
 
-    def test_dash(self):
+    def test_keyword(self):
         self.assertEqual(phase2.make_keys_safe({'from': 1}), {'from_': 1})
