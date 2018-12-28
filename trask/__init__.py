@@ -10,7 +10,7 @@ import tempfile
 import attr
 import tatsu
 
-from trask import schema, types
+from trask import types
 
 
 def run_cmd(*cmd):

@@ -7,7 +7,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 import trask
-from trask import phase1
+from trask import phase1, phase2
 
 
 class TestGrammar(unittest.TestCase):
@@ -67,85 +67,85 @@ class TestPhase1(fake_filesystem_unittest.TestCase):
 
 class TestPhase2(unittest.TestCase):
     def test_empty(self):
-        schema = trask.schema.MODEL.parse('')
-        result = trask.schema.Phase2.load(schema, [])
+        schema = phase2.MODEL.parse('')
+        result = phase2.Phase2.load(schema, [])
         self.assertEqual(result, [])
 
     def test_bool(self):
-        schema = trask.schema.MODEL.parse('bool', 'type')
-        result = trask.schema.Phase2.load(schema, True)
+        schema = phase2.MODEL.parse('bool', 'type')
+        result = phase2.Phase2.load(schema, True)
         self.assertEqual(result, True)
-        with self.assertRaises(trask.schema.TypeMismatch):
-            trask.schema.Phase2.load(schema, 'foo')
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, 'foo')
 
     def test_string(self):
-        schema = trask.schema.MODEL.parse('string', 'type')
-        result = trask.schema.Phase2.load(schema, 'myString')
+        schema = phase2.MODEL.parse('string', 'type')
+        result = phase2.Phase2.load(schema, 'myString')
         self.assertEqual(result, 'myString')
-        with self.assertRaises(trask.schema.TypeMismatch):
-            trask.schema.Phase2.load(schema, True)
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, True)
 
     def test_array(self):
-        schema = trask.schema.MODEL.parse('string[]', 'type')
-        result = trask.schema.Phase2.load(schema, ['a', 'b'])
+        schema = phase2.MODEL.parse('string[]', 'type')
+        result = phase2.Phase2.load(schema, ['a', 'b'])
         self.assertEqual(result, ['a', 'b'])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            trask.schema.Phase2.load(schema, 'foo')
-        with self.assertRaises(trask.schema.TypeMismatch):
-            trask.schema.Phase2.load(schema, [True])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            trask.schema.Phase2.load(schema, ['foo', True])
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, 'foo')
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, [True])
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, ['foo', True])
 
     def test_object(self):
-        schema = trask.schema.MODEL.parse("{ foo: string; }", 'type')
-        result = trask.schema.Phase2.load(schema, {'foo': 'bar'})
+        schema = phase2.MODEL.parse("{ foo: string; }", 'type')
+        result = phase2.Phase2.load(schema, {'foo': 'bar'})
         self.assertEqual(result.foo, 'bar')
-        result = trask.schema.Phase2.load(schema, {})
+        result = phase2.Phase2.load(schema, {})
         self.assertEqual(result.foo, None)
-        with self.assertRaises(trask.schema.InvalidKey):
-            trask.schema.Phase2.load(schema, {'bad-key': 'bar'})
+        with self.assertRaises(phase2.InvalidKey):
+            phase2.Phase2.load(schema, {'bad-key': 'bar'})
 
     def test_required_key(self):
-        schema = trask.schema.MODEL.parse("{ required foo: string; }", 'type')
-        result = trask.schema.Phase2.load(schema, {'foo': 'bar'})
+        schema = phase2.MODEL.parse("{ required foo: string; }", 'type')
+        result = phase2.Phase2.load(schema, {'foo': 'bar'})
         self.assertEqual(result.foo, 'bar')
-        with self.assertRaises(trask.schema.MissingKey):
-            trask.schema.Phase2.load(schema, {})
+        with self.assertRaises(phase2.MissingKey):
+            phase2.Phase2.load(schema, {})
 
     def test_wildcard(self):
-        schema = trask.schema.MODEL.parse("{ *: string; }", 'type')
-        trask.schema.Phase2.load(schema, {})
-        result = trask.schema.Phase2.load(schema, {'foo': 'bar'})
+        schema = phase2.MODEL.parse("{ *: string; }", 'type')
+        phase2.Phase2.load(schema, {})
+        result = phase2.Phase2.load(schema, {'foo': 'bar'})
         self.assertEqual(result.foo, 'bar')
+
+    # def test_choice(self):
+    #     schema = make_schema("foo { bar: string choices('x', 'y'); }")
+    #     schema.validate([{'foo': {'bar': 'x'}}])
+    #     with self.assertRaises(phase2.InvalidChoice):
+    #         schema.validate([{'foo': {'bar': 'z'}}])
 
     # def test_path(self):
     #     schema = make_schema("foo { bar: path; }")
     #     result = schema.validate(
     #         [trask.types.Step('foo', {'bar': 'baz'}, '/myPath')])
     #     self.assertEqual(result[0].recipe.bar, '/myPath/baz')
-    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #     with self.assertRaises(phase2.TypeMismatch):
     #         schema.validate([{'foo': {'bar': True}}])
-
-    # def test_choice(self):
-    #     schema = make_schema("foo { bar: string choices('x', 'y'); }")
-    #     schema.validate([{'foo': {'bar': 'x'}}])
-    #     with self.assertRaises(trask.schema.InvalidChoice):
-    #         schema.validate([{'foo': {'bar': 'z'}}])
 
     # def test_string_array(self):
     #     schema = make_schema("foo { bar: string[]; }")
     #     schema.validate([{'foo': {'bar': ['x']}}])
-    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #     with self.assertRaises(phase2.TypeMismatch):
     #         schema.validate([{'foo': {'bar': [True]}}])
-    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #     with self.assertRaises(phase2.TypeMismatch):
     #         schema.validate([{'foo': {'bar': 'x'}}])
 
     # def test_object_array(self):
     #     schema = make_schema("foo { bar: { baz: string; }[]; }")
     #     schema.validate([{'foo': {'bar': [{'baz': 'x'}]}}])
-    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #     with self.assertRaises(phase2.TypeMismatch):
     #         schema.validate([{'foo': {'bar': [True]}}])
-    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #     with self.assertRaises(phase2.TypeMismatch):
     #         schema.validate([{'foo': {'bar': 'baz'}}])
 
     # def test_validate_result(self):
