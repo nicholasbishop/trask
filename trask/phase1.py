@@ -57,7 +57,8 @@ def expand_includes(step, path):
         rel_path = step.recipe['file']
         if isinstance(rel_path, types.Var):
             raise TypeError('include path cannot be a variable')
-        new_path = os.path.abspath(os.path.join(path, rel_path))
+        dirname = os.path.dirname(path)
+        new_path = os.path.abspath(os.path.join(dirname, rel_path))
         return load(new_path)
     else:
         return [step]
