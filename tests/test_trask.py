@@ -174,14 +174,33 @@ class TestPhase2(unittest.TestCase):
 
     def test_set(self):
         loader = phase2.Phase2()
-        loader.load_one(phase2.SCHEMA,
-                        [types.Step('set', {'foo': 'bar'}, None)], [])
-        self.assertEqual(loader.variables, {'foo': types.Kind.String})
+        loader.load_one(phase2.SCHEMA, [
+            types.Step('set', {
+                'a': 'x',
+                'b': True,
+                'c': types.Call('env', ('x', ))
+            }, None)
+        ], [])
+        self.assertEqual(loader.variables, {
+            'a': types.Kind.String,
+            'b': types.Kind.Bool,
+            'c': types.Kind.String
+        })
+
+    def test_set_bad_type(self):
+        loader = phase2.Phase2()
+        with self.assertRaises(phase2.SchemaError):
+            loader.load_one(phase2.SCHEMA,
+                            [types.Step('set', {'a': object()}, None)], [])
 
     def test_step(self):
         schema = phase2.MODEL.parse('foo {}')
-        print(schema)
         phase2.Phase2.load(schema, [types.Step('foo', {}, None)])
+
+    def test_invalid_object(self):
+        schema = phase2.MODEL.parse('{}', 'type')
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, True)
 
     def test_set_call(self):
         loader = phase2.Phase2()
@@ -205,6 +224,9 @@ class TestPhase2(unittest.TestCase):
             result, phase2.Value(types.Call('env', ('key', )), is_path=True))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
+
+    def test_non_object_wildcard(self):
+        self.assertFalse(phase2.Type(types.Kind.Bool).wildcard_key())
 
     # def test_object_array(self):
     #     schema = make_schema("foo { bar: { baz: string; }[]; }")
@@ -284,7 +306,8 @@ class TestValue(unittest.TestCase):
 class TestFunctions(unittest.TestCase):
     def test_get_from_env(self):
         os.environ['MY_TEST_VAR'] = 'my-test-value'
-        self.assertEqual(functions.get_from_env(('MY_TEST_VAR',)), 'my-test-value')
+        self.assertEqual(
+            functions.get_from_env(('MY_TEST_VAR', )), 'my-test-value')
 
 
 class TestMakeKeysSafe(unittest.TestCase):
