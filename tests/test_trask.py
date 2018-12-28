@@ -118,11 +118,12 @@ class TestPhase2(unittest.TestCase):
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
         self.assertEqual(result.foo, 'bar')
 
-    # def test_choice(self):
-    #     schema = make_schema("foo { bar: string choices('x', 'y'); }")
-    #     schema.validate([{'foo': {'bar': 'x'}}])
-    #     with self.assertRaises(phase2.InvalidChoice):
-    #         schema.validate([{'foo': {'bar': 'z'}}])
+    def test_choice(self):
+        schema = phase2.MODEL.parse("string choices('x', 'y')", 'type')
+        result = phase2.Phase2.load(schema, 'x')
+        self.assertEqual(result, 'x')
+        with self.assertRaises(phase2.InvalidChoice):
+            phase2.Phase2.load(schema, 'foo')
 
     # def test_path(self):
     #     schema = make_schema("foo { bar: path; }")
