@@ -49,54 +49,82 @@ def make_keys_safe(dct):
     return result
 
 
+class SchemaError(ValueError):
+    pass
+
+
+class MissingKey(SchemaError):
+    pass
+
+
+class InvalidKey(SchemaError):
+    pass
+
+
+class TypeMismatch(SchemaError):
+    pass
+
+
+class InvalidChoice(SchemaError):
+    pass
+
+
+class UnboundVariable(SchemaError):
+    pass
+
+
 @attr.s
-class Type:
-    kind = attr.ib()
-    array_type = attr.ib(default=None)
-    choices = attr.ib(default=None)
-    fields = attr.ib(default=None)
+class Phase2:
+    step = attr.ib()
+    variables = attr.ib()
 
-    def validate(self, val, step=None, path=None):
-        if path is None:
-            path = []
+    def load_bool(self, schema, val, path):
+        if not isinstance(val, bool):
+            raise TypeMismatch(path)
+        return val
 
-        result = None
+    def load_string(self, schema, val, path):
+        if not isinstance(val, str):
+            raise TypeMismatch(path)
+        return val
 
-        if self.kind == Kind.Bool:
-            if not isinstance(val, bool):
-                raise TypeMismatch(path)
-            result = val
-        elif self.kind == Kind.String:
-            if not isinstance(val, str):
-                raise TypeMismatch(path)
-            result = val
-        elif self.kind == Kind.Path:
-            if not isinstance(val, str):
-                raise TypeMismatch(path)
-            result = os.path.abspath(os.path.join(step.path, val))
-        elif self.kind == Kind.Array:
-            if not isinstance(val, list):
-                raise TypeMismatch(path)
-            new_val = []
-            for index, elem in enumerate(val):
-                new_val.append(
-                    self.array_type.validate(elem, step, path + [index]))
-            result = new_val
-        elif self.kind == Kind.Object and isinstance(val, types.Step):
-            fields = self.fields[Key(val.name)].validate(
-                val.recipe, val, path + [val.name])
-            result = types.Step(val.name, fields, val.path)
-        elif self.kind == Kind.Object:
+    def load_path(self, schema, val, path):
+        if not isinstance(val, str):
+            raise TypeMismatch(path)
+        return os.path.abspath(os.path.join(self.step.path, val))
+
+    def load_array(self, schema, val, path):
+        if not isinstance(val, list):
+            raise TypeMismatch(path)
+        lst = []
+        for index, elem in enumerate(val):
+            subpath = path + [index]
+            lst.append(self.load_any(schema.array_type, elem, subpath))
+        return lst
+
+    def load_object(self, schema, val, path):
+        if isinstance(val, types.Step):
+            self.step = val
+            fields = self.load_any(schema.fields[Key(val.name)],
+                                   val.recipe, path + [val.name])
+            return types.Step(val.name, fields, val.path)
+        else:
             if not isinstance(val, collections.abc.Mapping):
                 raise TypeMismatch(path)
             temp_obj = {}
-            if not self.wildcard_key():
+            if schema.wildcard_key():
                 for key in val:
-                    if Key(key) not in self.fields:
+                    subpath = path + [key]
+                    temp_obj[key] = self.load_any(schema.fields[Key('*')],
+                                                  val[key], subpath)
+            else:
+                for key in val:
+                    if Key(key) not in schema.fields:
                         raise InvalidKey(path, key)
-                    temp_obj[key] = self.fields[Key(key)].validate(
-                        val[key], step, path + [key])
-            for key in self.fields:
+                    subpath = path + [key]
+                    temp_obj[key] = self.load_any(schema.fields[Key(key)],
+                                                  val[key], subpath)
+            for key in schema.fields:
                 if key.name not in temp_obj and key.name != '*':
                     temp_obj[key.name] = None
                 if key.is_required:
@@ -104,15 +132,43 @@ class Type:
                         raise MissingKey(path)
             temp_obj = make_keys_safe(temp_obj)
             cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
-            result = cls(**temp_obj)
+            return cls(**temp_obj)
+
+    def load_any(self, schema, val, path):
+        if isinstance(val, types.Var):
+            if val.name not in self.variables:
+                raise UnboundVariable(path)
+            elif self.variables[val.name] != schema.kind:
+                raise TypeMismatch(path)
+
+            return types.Var(val.name, choices=schema.choices)
         else:
-            raise ValueError('invalid schema kind')
+            result = {
+                Kind.Bool: self.load_bool,
+                Kind.String: self.load_string,
+                Kind.Path: self.load_path,
+                Kind.Array: self.load_array,
+                Kind.Object: self.load_object,
+            }[schema.kind](schema, val, path)
 
-        if self.choices is not None:
-            if val not in self.choices:
-                raise InvalidChoice()
+            if schema.choices is not None:
+                if result not in schema.choices:
+                    raise InvalidChoice()
 
-        return result
+            return result
+        
+    @classmethod
+    def load(cls, schema, val):
+        phase2 = cls(step=None, variables={})
+        return phase2.load_any(schema, val, [])
+
+
+@attr.s
+class Type:
+    kind = attr.ib()
+    array_type = attr.ib(default=None)
+    choices = attr.ib(default=None)
+    fields = attr.ib(default=None)
 
     def wildcard_key(self):
         if self.kind == Kind.Object:
@@ -173,21 +229,3 @@ with open(os.path.join(SCRIPT_DIR, 'schema')) as rfile:
     SCHEMA = MODEL.parse(rfile.read())
 
 
-class SchemaError(ValueError):
-    pass
-
-
-class MissingKey(SchemaError):
-    pass
-
-
-class InvalidKey(SchemaError):
-    pass
-
-
-class TypeMismatch(SchemaError):
-    pass
-
-
-class InvalidChoice(SchemaError):
-    pass

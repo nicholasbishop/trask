@@ -47,143 +47,117 @@ class TestDockerfile(unittest.TestCase):
             trask.docker_install_rust({'channel': 'badChannel'})
 
 
-def make_schema(string):
-    return trask.schema.MODEL.parse(string)
-
-
-class TestSchema(unittest.TestCase):
-    def test_empty(self):
-        schema = make_schema("")
-        schema.validate([])
-
-    def test_wildcard(self):
-        schema = make_schema("foo { *: string; }")
-        result = schema.validate([{'foo': {'a': 'b'}}])
-
-    def test_invalid_recipe_name(self):
-        schema = make_schema("")
-        with self.assertRaises(trask.schema.InvalidKey):
-            schema.validate([{'bad-recipe': {}}])
-
-    def test_invalid_key(self):
-        schema = make_schema("foo { bar: string; }")
-        with self.assertRaises(trask.schema.InvalidKey):
-            schema.validate([{'foo': {'bad-key': {}}}])
-
-    def test_missing_key(self):
-        schema = make_schema("foo { required bar: string; }")
-        with self.assertRaises(trask.schema.MissingKey):
-            schema.validate([{'foo': {}}])
-
-    def test_string(self):
-        schema = make_schema("foo { bar: string; }")
-        schema.validate([{'foo': {'bar': 'baz'}}])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            schema.validate([{'foo': {'bar': True}}])
-
-    def test_bool(self):
-        schema = make_schema("foo { bar: bool; }")
-        schema.validate([{'foo': {'bar': True}}])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            schema.validate([{'foo': {'bar': 'baz'}}])
-
-    def test_path(self):
-        schema = make_schema("foo { bar: path; }")
-        result = schema.validate(
-            [trask.types.Step('foo', {'bar': 'baz'}, '/myPath')])
-        self.assertEqual(result[0].recipe.bar, '/myPath/baz')
-        with self.assertRaises(trask.schema.TypeMismatch):
-            schema.validate([{'foo': {'bar': True}}])
-
-    def test_choice(self):
-        schema = make_schema("foo { bar: string choices('x', 'y'); }")
-        schema.validate([{'foo': {'bar': 'x'}}])
-        with self.assertRaises(trask.schema.InvalidChoice):
-            schema.validate([{'foo': {'bar': 'z'}}])
-
-    def test_string_array(self):
-        schema = make_schema("foo { bar: string[]; }")
-        schema.validate([{'foo': {'bar': ['x']}}])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            schema.validate([{'foo': {'bar': [True]}}])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            schema.validate([{'foo': {'bar': 'x'}}])
-
-    def test_object_array(self):
-        schema = make_schema("foo { bar: { baz: string; }[]; }")
-        schema.validate([{'foo': {'bar': [{'baz': 'x'}]}}])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            schema.validate([{'foo': {'bar': [True]}}])
-        with self.assertRaises(trask.schema.TypeMismatch):
-            schema.validate([{'foo': {'bar': 'baz'}}])
-
-    def test_validate_result(self):
-        schema = make_schema("foo { bar: string; }")
-        result = schema.validate(
-            [trask.types.Step('foo', {'bar': 'baz'}, None)])
-        self.assertEqual(len(result), 1)
-        obj = result[0]
-        self.assertTrue(isinstance(obj, trask.types.Step))
-        obj = obj.recipe
-        self.assertEqual(obj.__class__.__name__, 'SchemaClass')
-        obj = obj.bar
-        self.assertEqual(obj, 'baz')
-
-
-class TestLoad(fake_filesystem_unittest.TestCase):
+class TestPhase1(fake_filesystem_unittest.TestCase):
     def setUp(self):
         self.setUpPyfakefs()
 
     def test_empty(self):
         self.fs.create_file('/myFile')
-        ctx = trask.Context()
-        result = trask.load_trask_file(ctx, '/myFile')
+        result = trask.load_phase1('/myFile')
         self.assertEqual(result, [])
-        self.assertEqual(ctx.path, '/')
-
-    def test_resolve_var(self):
-        self.fs.create_file('/myFile', contents='foo { key var }')
-        self.fs.create_file('/expected', contents="foo { key 'foo' }")
-        ctx = trask.Context()
-        ctx.variables['var'] = 'foo'
-        result = trask.load_trask_file(ctx, '/myFile')
-        expected = trask.load_trask_file(trask.Context(), '/expected')
-        self.assertEqual(result, expected)
-
-    def test_resolve_call(self):
-        os.environ['test-variable'] = 'foo'
-        self.fs.create_file(
-            '/myFile', contents="foo { key env('test-variable') }")
-        self.fs.create_file('/expected', contents="foo { key 'foo' }")
-        result = trask.load_trask_file(trask.Context(), '/myFile')
-        expected = trask.load_trask_file(trask.Context(), '/expected')
-        self.assertEqual(result, expected)
-
-    def test_resolve_list(self):
-        self.fs.create_file('/myFile', contents="foo { key ['a'] }")
-        result = trask.load_trask_file(trask.Context(), '/myFile')
-        self.assertEqual(result,
-                         [trask.types.Step('foo', {'key': ['a']}, '/')])
-
-    def test_set(self):
-        self.fs.create_file('/myFile', contents="set { a 'b' }")
-        ctx = trask.Context()
-        result = trask.load_trask_file(ctx, '/myFile')
-        self.assertEqual(result, [])
-        self.assertEqual(ctx.variables, {'a': 'b'})
 
     def test_include(self):
         self.fs.create_file('/a', contents="include { file '/b' }")
         self.fs.create_file('/b', contents="foo {} bar {}")
-        result = trask.load_trask_file(trask.Context(), '/a')
-        expected = trask.load_trask_file(trask.Context(), '/b')
+        result = trask.load_phase1('/a')
+        expected = trask.load_phase1('/b')
         self.assertEqual(result, expected)
 
-    def test_validate(self):
-        schema = make_schema("foo { bar: string; }")
-        self.fs.create_file('/myFile', contents="foo { bar 'baz' }")
-        result = trask.load_trask_file(trask.Context(), '/myFile')
-        schema.validate(result)
+
+class TestPhase2(unittest.TestCase):
+    def test_empty(self):
+        schema = trask.schema.MODEL.parse('')
+        result = trask.schema.Phase2.load(schema, [])
+        self.assertEqual(result, [])
+
+    def test_bool(self):
+        schema = trask.schema.MODEL.parse('bool', 'type')
+        result = trask.schema.Phase2.load(schema, True)
+        self.assertEqual(result, True)
+        with self.assertRaises(trask.schema.TypeMismatch):
+            trask.schema.Phase2.load(schema, 'foo')
+
+    def test_string(self):
+        schema = trask.schema.MODEL.parse('string', 'type')
+        result = trask.schema.Phase2.load(schema, 'myString')
+        self.assertEqual(result, 'myString')
+        with self.assertRaises(trask.schema.TypeMismatch):
+            trask.schema.Phase2.load(schema, True)
+
+    def test_array(self):
+        schema = trask.schema.MODEL.parse('string[]', 'type')
+        result = trask.schema.Phase2.load(schema, ['a', 'b'])
+        self.assertEqual(result, ['a', 'b'])
+        with self.assertRaises(trask.schema.TypeMismatch):
+            trask.schema.Phase2.load(schema, 'foo')
+        with self.assertRaises(trask.schema.TypeMismatch):
+            trask.schema.Phase2.load(schema, [True])
+        with self.assertRaises(trask.schema.TypeMismatch):
+            trask.schema.Phase2.load(schema, ['foo', True])
+
+    def test_object(self):
+        schema = trask.schema.MODEL.parse("{ foo: string; }", 'type')
+        result = trask.schema.Phase2.load(schema, {'foo': 'bar'})
+        self.assertEqual(result.foo, 'bar')
+        result = trask.schema.Phase2.load(schema, {})
+        self.assertEqual(result.foo, None)
+        with self.assertRaises(trask.schema.InvalidKey):
+            trask.schema.Phase2.load(schema, {'bad-key': 'bar'})
+
+    def test_required_key(self):
+        schema = trask.schema.MODEL.parse("{ required foo: string; }", 'type')
+        result = trask.schema.Phase2.load(schema, {'foo': 'bar'})
+        self.assertEqual(result.foo, 'bar')
+        with self.assertRaises(trask.schema.MissingKey):
+            trask.schema.Phase2.load(schema, {})
+
+    def test_wildcard(self):
+        schema = trask.schema.MODEL.parse("{ *: string; }", 'type')
+        trask.schema.Phase2.load(schema, {})
+        result = trask.schema.Phase2.load(schema, {'foo': 'bar'})
+        self.assertEqual(result.foo, 'bar')
+
+    # def test_path(self):
+    #     schema = make_schema("foo { bar: path; }")
+    #     result = schema.validate(
+    #         [trask.types.Step('foo', {'bar': 'baz'}, '/myPath')])
+    #     self.assertEqual(result[0].recipe.bar, '/myPath/baz')
+    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #         schema.validate([{'foo': {'bar': True}}])
+
+    # def test_choice(self):
+    #     schema = make_schema("foo { bar: string choices('x', 'y'); }")
+    #     schema.validate([{'foo': {'bar': 'x'}}])
+    #     with self.assertRaises(trask.schema.InvalidChoice):
+    #         schema.validate([{'foo': {'bar': 'z'}}])
+
+    # def test_string_array(self):
+    #     schema = make_schema("foo { bar: string[]; }")
+    #     schema.validate([{'foo': {'bar': ['x']}}])
+    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #         schema.validate([{'foo': {'bar': [True]}}])
+    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #         schema.validate([{'foo': {'bar': 'x'}}])
+
+    # def test_object_array(self):
+    #     schema = make_schema("foo { bar: { baz: string; }[]; }")
+    #     schema.validate([{'foo': {'bar': [{'baz': 'x'}]}}])
+    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #         schema.validate([{'foo': {'bar': [True]}}])
+    #     with self.assertRaises(trask.schema.TypeMismatch):
+    #         schema.validate([{'foo': {'bar': 'baz'}}])
+
+    # def test_validate_result(self):
+    #     schema = make_schema("foo { bar: string; }")
+    #     result = schema.validate(
+    #         [trask.types.Step('foo', {'bar': 'baz'}, None)])
+    #     self.assertEqual(len(result), 1)
+    #     obj = result[0]
+    #     self.assertTrue(isinstance(obj, trask.types.Step))
+    #     obj = obj.recipe
+    #     self.assertEqual(obj.__class__.__name__, 'SchemaClass')
+    #     obj = obj.bar
+    #     self.assertEqual(obj, 'baz')
 
 
 if __name__ == '__main__':

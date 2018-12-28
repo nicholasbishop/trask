@@ -6,3 +6,9 @@ class Step:
     name = attr.ib()
     recipe = attr.ib()
     path = attr.ib()
+
+
+@attr.s
+class Var:
+    name = attr.ib()
+    choices = attr.ib(default=None)

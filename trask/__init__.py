@@ -29,11 +29,6 @@ GRAMMAR = '''
 '''
 
 
-class Var:
-    def __init__(self, name):
-        self.name = name
-
-
 @attr.s
 class Call:
     name = attr.ib()
@@ -58,7 +53,7 @@ class Semantics:
             (pair['key'], pair['value']) for pair in ast)
 
     def var(self, ast):
-        return Var(ast)
+        return types.Var(ast)
 
     def call(self, ast):
         return Call(ast['func'], ast['args'])
@@ -82,7 +77,6 @@ class Context:
         self.path = None
         self.set_path_from_file(trask_file)
         self.variables = {}
-        self.temp_dirs = []
         self.funcs = {'env': get_from_env}
 
     def set_path_from_file(self, trask_file):
@@ -93,7 +87,7 @@ class Context:
         return os.path.abspath(os.path.join(self.path, path))
 
     def resolve(self, val):
-        if isinstance(val, Var):
+        if isinstance(val, types.Var):
             return self.variables[val.name]
         elif isinstance(val, Call):
             return self.funcs[val.name](self, val.args)
@@ -141,7 +135,7 @@ def create_dockerfile(obj):
 def handle_docker_build(keys):
     cmd = ['docker', 'build']
     cmd = ['sudo'] + cmd  # TODO
-    tag = ctx.resolve(keys.get('tag'))
+    tag = keys.get('tag')
     if tag is not None:
         cmd += ['--tag', tag]
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -162,7 +156,7 @@ def handle_docker_run(keys):
     if keys.get('init') is True:
         cmd.append('--init')
     for volume in keys.get('volumes', []):
-        host = ctx.repath(volume['host'])
+        host = volume['host']
         container = volume['container']
         cmd += ['--volume', '{}:{}:z'.format(host, container)]
     cmd.append(keys['image'])
@@ -173,7 +167,8 @@ def handle_docker_run(keys):
 def handle_create_temp_dir(keys):
     var = keys['var']
     temp_dir = tempfile.TemporaryDirectory()
-    ctx.temp_dirs.append(temp_dir)
+    # TODO
+    # ctx.temp_dirs.append(temp_dir)
     ctx.variables[var] = temp_dir.name
     print('mkdir', temp_dir.name)
 
@@ -224,6 +219,17 @@ def handle_ssh(ctx, obj):
     run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
 
 
+def expand_includes(step, path):
+    if step.name == 'include' and 'file' in step.recipe:
+        rel_path = step.recipe['file']
+        if isinstance(rel_path, types.Var):
+            raise TypeError('include path cannot be a variable')
+        new_path = os.path.abspath(os.path.join(path, rel_path))
+        return load_phase1(new_path)
+    else:
+        return [step]
+
+
 def resolve(ctx, val):
     if isinstance(val, types.Step):
         new_val = types.Step(val.name, resolve(ctx, val.recipe), ctx.path)
@@ -239,7 +245,7 @@ def resolve(ctx, val):
             return []
         else:
             return [new_val]
-    elif isinstance(val, Var):
+    elif isinstance(val, types.Var):
         return ctx.resolve(val)
     elif isinstance(val, Call):
         return ctx.resolve(val)
@@ -257,15 +263,14 @@ def resolve(ctx, val):
         return val
 
 
-def load_trask_file(ctx, path):
-    ctx.set_path_from_file(path)
-
+def load_phase1(path):
+    """Load |path| and recursively expand any includes."""
     with open(path) as rfile:
         steps = MODEL.parse(rfile.read())
 
     new_steps = []
     for step in steps:
-        new_steps += resolve(ctx, step)
+        new_steps += expand_includes(step, path)
 
     return new_steps
 
