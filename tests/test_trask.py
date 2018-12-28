@@ -104,6 +104,10 @@ class TestPhase2(unittest.TestCase):
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, None)
 
+    def test_invalid_primitive(self):
+        with self.assertRaises(ValueError):
+            phase2.Semantics().primitive('bad-primitive')
+
     def test_path(self):
         schema = phase2.MODEL.parse('path', 'type')
         result = phase2.Phase2.load(schema, 'myPath')
