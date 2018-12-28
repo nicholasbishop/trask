@@ -133,6 +133,7 @@ class Phase2:
         return Value(val)
 
     def load_path(self, _, val, path):
+        # pylint: disable=no-self-use
         if not isinstance(val, str):
             raise TypeMismatch(path)
         return Value(val, is_path=True)
@@ -289,11 +290,9 @@ class Semantics:
         inner = ast['inner']
         choices = choices = ast['choices']
         if ast['array']:
-            kind = types.Kind.Array
-            array_type = inner
             return Type(
                 kind=types.Kind.Array,
-                array_type=array_type,
+                array_type=inner,
                 fields=None,
                 choices=choices)
         else:

@@ -1,14 +1,10 @@
 # TODO: remove this
 # pylint: disable=missing-docstring
 
-import collections
 import os
 import shutil
 import subprocess
 import tempfile
-
-import attr
-import tatsu
 
 from trask import functions, types
 
