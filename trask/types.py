@@ -5,6 +5,12 @@ import attr
 
 
 @attr.s
+class Call:
+    name = attr.ib()
+    args = attr.ib()
+
+
+@attr.s
 class Step:
     name = attr.ib()
     recipe = attr.ib()

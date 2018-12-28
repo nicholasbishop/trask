@@ -12,55 +12,6 @@ import tatsu
 
 from trask import schema, types
 
-GRAMMAR = '''
-  @@grammar::Trask
-  @@eol_comments :: /#.*?$/
-  top = { step } $ ;
-  step = name:ident recipe:dictionary ;
-  dictionary = '{' @:{ pair } '}' ;
-  list = '[' @:{ value } ']' ;
-  pair = key:ident value:value ;
-  value = dictionary | list | call | boolean | var | string ;
-  call = func:ident '(' args:{value} ')' ;
-  boolean = "true" | "false" ;
-  string = "'" @:/[^']*/ "'" ;
-  var = ident ;
-  ident = /[a-zA-Z0-9_-]+/ ;
-'''
-
-
-@attr.s
-class Call:
-    name = attr.ib()
-    args = attr.ib()
-
-
-class Semantics:
-    # pylint: disable=no-self-use
-    def boolean(self, ast):
-        if ast == 'true':
-            return True
-        elif ast == 'false':
-            return False
-        else:
-            raise ValueError(ast)
-
-    def step(self, ast):
-        return types.Step(ast.name, ast.recipe, None)
-
-    def dictionary(self, ast):
-        return collections.OrderedDict(
-            (pair['key'], pair['value']) for pair in ast)
-
-    def var(self, ast):
-        return types.Var(ast)
-
-    def call(self, ast):
-        return Call(ast['func'], ast['args'])
-
-
-MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
-
 
 def run_cmd(*cmd):
     print(' '.join(cmd))
@@ -219,17 +170,6 @@ def handle_ssh(ctx, obj):
     run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
 
 
-def expand_includes(step, path):
-    if step.name == 'include' and 'file' in step.recipe:
-        rel_path = step.recipe['file']
-        if isinstance(rel_path, types.Var):
-            raise TypeError('include path cannot be a variable')
-        new_path = os.path.abspath(os.path.join(path, rel_path))
-        return load_phase1(new_path)
-    else:
-        return [step]
-
-
 def resolve(ctx, val):
     if isinstance(val, types.Step):
         new_val = types.Step(val.name, resolve(ctx, val.recipe), ctx.path)
@@ -261,18 +201,6 @@ def resolve(ctx, val):
         return new_val
     else:
         return val
-
-
-def load_phase1(path):
-    """Load |path| and recursively expand any includes."""
-    with open(path) as rfile:
-        steps = MODEL.parse(rfile.read())
-
-    new_steps = []
-    for step in steps:
-        new_steps += expand_includes(step, path)
-
-    return new_steps
 
 
 def run(steps):

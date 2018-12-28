@@ -7,29 +7,29 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 import trask
-
+from trask import phase1
 
 class TestGrammar(unittest.TestCase):
     def test_bool(self):
-        self.assertIs(trask.MODEL.parse('true', 'boolean'), True)
-        self.assertIs(trask.MODEL.parse('false', 'boolean'), False)
+        self.assertIs(phase1.MODEL.parse('true', 'boolean'), True)
+        self.assertIs(phase1.MODEL.parse('false', 'boolean'), False)
 
     def test_string(self):
-        self.assertEqual(trask.MODEL.parse("'myString'", 'string'), 'myString')
+        self.assertEqual(phase1.MODEL.parse("'myString'", 'string'), 'myString')
 
     def test_call(self):
         self.assertEqual(
-            trask.MODEL.parse("myFunc('myArg')", 'call'),
-            trask.Call('myFunc', ['myArg']))
+            phase1.MODEL.parse("myFunc('myArg')", 'call'),
+            trask.types.Call('myFunc', ['myArg']))
 
     def test_list(self):
         self.assertEqual(
-            trask.MODEL.parse("['a' 'b' 'c']", 'list'), ['a', 'b', 'c'])
+            phase1.MODEL.parse("['a' 'b' 'c']", 'list'), ['a', 'b', 'c'])
 
     def test_dictionary(self):
         text = "{a 'b'\nc 'd'}"
         self.assertEqual(
-            trask.MODEL.parse(text, 'dictionary'), {
+            phase1.MODEL.parse(text, 'dictionary'), {
                 'a': 'b',
                 'c': 'd',
             })
@@ -52,14 +52,14 @@ class TestPhase1(fake_filesystem_unittest.TestCase):
 
     def test_empty(self):
         self.fs.create_file('/myFile')
-        result = trask.load_phase1('/myFile')
+        result = phase1.load('/myFile')
         self.assertEqual(result, [])
 
     def test_include(self):
         self.fs.create_file('/a', contents="include { file '/b' }")
         self.fs.create_file('/b', contents="foo {} bar {}")
-        result = trask.load_phase1('/a')
-        expected = trask.load_phase1('/b')
+        result = phase1.load('/a')
+        expected = phase1.load('/b')
         self.assertEqual(result, expected)
 
 
