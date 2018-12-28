@@ -24,6 +24,7 @@ GRAMMAR = '''
   ident = /[a-zA-Z0-9_-]+/ ;
 '''
 
+
 class Semantics:
     # pylint: disable=no-self-use
     def boolean(self, ast):

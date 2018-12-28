@@ -110,8 +110,8 @@ class Phase2:
     def load_object(self, schema, val, path):
         if isinstance(val, types.Step):
             self.step = val
-            fields = self.load_any(schema.fields[Key(val.name)],
-                                   val.recipe, path + [val.name])
+            fields = self.load_any(schema.fields[Key(val.name)], val.recipe,
+                                   path + [val.name])
             return types.Step(val.name, fields, val.path)
         else:
             if not isinstance(val, collections.abc.Mapping):

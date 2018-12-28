@@ -9,13 +9,15 @@ from pyfakefs import fake_filesystem_unittest
 import trask
 from trask import phase1
 
+
 class TestGrammar(unittest.TestCase):
     def test_bool(self):
         self.assertIs(phase1.MODEL.parse('true', 'boolean'), True)
         self.assertIs(phase1.MODEL.parse('false', 'boolean'), False)
 
     def test_string(self):
-        self.assertEqual(phase1.MODEL.parse("'myString'", 'string'), 'myString')
+        self.assertEqual(
+            phase1.MODEL.parse("'myString'", 'string'), 'myString')
 
     def test_call(self):
         self.assertEqual(
