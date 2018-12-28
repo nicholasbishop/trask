@@ -2,7 +2,7 @@ dist:
 	python3 setup.py sdist 
 
 lint:
-	python3 -m pylint *.py trask/*.py tests/*.py
+	python3 -m pylint *.py trask tests
 
 format:
 	python3 -m yapf -i *.py trask/*.py tests/*.py
