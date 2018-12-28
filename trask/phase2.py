@@ -115,23 +115,26 @@ class Phase2:
             lst.append(self.load_one(schema.array_type, elem, subpath))
         return lst
 
+    def load_step(self, schema, val, path):
+        self.step = val
+        fields = self.load_one(schema.fields[Key(val.name)], val.recipe,
+                               path + [val.name])
+        # TODO, might be better to encode this in the schema somehow
+        if val.name == 'create-temp-dir':
+            self.variables[fields.var] = types.Kind.Path
+        elif val.name == 'set':
+            for key in val.recipe:
+                if isinstance(val.recipe[key], str):
+                    self.variables[key] = types.Kind.String
+                elif isinstance(val.recipe[key], bool):
+                    self.variables[key] = types.Kind.Bool
+                else:
+                    raise SchemaError('invalid variable type')
+        return types.Step(val.name, fields, val.path)
+
     def load_object(self, schema, val, path):
         if isinstance(val, types.Step):
-            self.step = val
-            fields = self.load_one(schema.fields[Key(val.name)], val.recipe,
-                                   path + [val.name])
-            # TODO, might be better to encode this in the schema somehow
-            if val.name == 'create-temp-dir':
-                self.variables[fields.var] = types.Kind.Path
-            elif val.name == 'set':
-                for key in val.recipe:
-                    if isinstance(val.recipe[key], str):
-                        self.variables[key] = types.Kind.String
-                    elif isinstance(val.recipe[key], bool):
-                        self.variables[key] = types.Kind.Bool
-                    else:
-                        raise SchemaError('invalid variable type')
-            return types.Step(val.name, fields, val.path)
+            return self.load_step(schema, val, path)
         else:
             if not isinstance(val, collections.abc.Mapping):
                 raise TypeMismatch(path)
