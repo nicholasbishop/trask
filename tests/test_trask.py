@@ -178,6 +178,11 @@ class TestPhase2(unittest.TestCase):
                         [types.Step('set', {'foo': 'bar'}, None)], [])
         self.assertEqual(loader.variables, {'foo': types.Kind.String})
 
+    def test_step(self):
+        schema = phase2.MODEL.parse('foo {}')
+        print(schema)
+        phase2.Phase2.load(schema, [types.Step('foo', {}, None)])
+
     def test_set_call(self):
         loader = phase2.Phase2()
         loader.load_one(
