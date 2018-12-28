@@ -85,6 +85,8 @@ class Phase2:
 
     def load_any(self, _, val, path):
         # pylint: disable=no-self-use
+        if val is None:
+            raise TypeMismatch(path)
         return val
 
     def load_bool(self, _, val, path):
