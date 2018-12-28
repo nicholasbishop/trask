@@ -128,10 +128,20 @@ class TestPhase2(unittest.TestCase):
     def test_var(self):
         schema = phase2.MODEL.parse('string', 'type')
         result = phase2.Phase2.load(schema, types.Var('x'),
-                                    {'x': phase2.Kind.String})
+                                    {'x': types.Kind.String})
         self.assertEqual(result, types.Var('x'))
         with self.assertRaises(phase2.TypeMismatch):
-            phase2.Phase2.load(schema, types.Var('x'), {'x': phase2.Kind.Bool})
+            phase2.Phase2.load(schema, types.Var('x'), {'x': types.Kind.Bool})
+        with self.assertRaises(phase2.UnboundVariable):
+            phase2.Phase2.load(schema, types.Var('x'))
+
+    def test_call(self):
+        schema = phase2.MODEL.parse('string', 'type')
+        result = phase2.Phase2.load(schema, types.Call('env', ('x',)))
+        self.assertEqual(result, types.Call('env', ('x',)))
+        with self.assertRaises(phase2.InvalidFunction):
+            phase2.Phase2.load(schema, types.Call('x', ()))
+        
 
     # def test_path(self):
     #     schema = make_schema("foo { bar: path; }")

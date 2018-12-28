@@ -4,6 +4,14 @@
 import attr
 
 
+class Kind:
+    Bool = 'bool'
+    String = 'string'
+    Path = 'path'
+    Array = 'array'
+    Object = 'object'
+
+
 @attr.s
 class Call:
     name = attr.ib()

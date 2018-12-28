@@ -8,7 +8,7 @@ import os
 import attr
 import tatsu
 
-from trask import types
+from trask import functions, types
 
 GRAMMAR = '''
   @@grammar::TraskSchema
@@ -25,14 +25,6 @@ GRAMMAR = '''
   string = "'" @:/[^']*/ "'" ;
   ident = /[a-zA-Z0-9_-]+/ ;
 '''
-
-
-class Kind:
-    Bool = 'bool'
-    String = 'string'
-    Path = 'path'
-    Array = 'array'
-    Object = 'object'
 
 
 @attr.s(frozen=True)
@@ -76,10 +68,15 @@ class UnboundVariable(SchemaError):
     pass
 
 
+class InvalidFunction(SchemaError):
+    pass
+
+
 @attr.s
 class Phase2:
     step = attr.ib()
     variables = attr.ib()
+    functions = attr.ib()
 
     def load_bool(self, _, val, path):
         # pylint: disable=no-self-use
@@ -147,13 +144,20 @@ class Phase2:
                 raise TypeMismatch(path)
 
             return types.Var(val.name, choices=schema.choices)
+        elif isinstance(val, types.Call):
+            if val.name not in self.functions:
+                raise InvalidFunction(path)
+            elif self.functions[val.name].return_type != schema.kind:
+                raise TypeMismatch(path)
+
+            return types.Call(val.name, val.args)
         else:
             result = {
-                Kind.Bool: self.load_bool,
-                Kind.String: self.load_string,
-                Kind.Path: self.load_path,
-                Kind.Array: self.load_array,
-                Kind.Object: self.load_object,
+                types.Kind.Bool: self.load_bool,
+                types.Kind.String: self.load_string,
+                types.Kind.Path: self.load_path,
+                types.Kind.Array: self.load_array,
+                types.Kind.Object: self.load_object,
             }[schema.kind](schema, val, path)
 
             if schema.choices is not None:
@@ -166,7 +170,8 @@ class Phase2:
     def load(cls, schema, val, variables=None):
         if variables is None:
             variables = {}
-        phase2 = cls(step=None, variables=variables)
+        phase2 = cls(step=None, variables=variables,
+                     functions=functions.get_functions())
         return phase2.load_any(schema, val, [])
 
 
@@ -178,7 +183,7 @@ class Type:
     fields = attr.ib(default=None)
 
     def wildcard_key(self):
-        if self.kind == Kind.Object:
+        if self.kind == types.Kind.Object:
             for key in self.fields:
                 if key.name == '*':
                     return True
@@ -194,24 +199,24 @@ class Semantics:
 
     def top(self, ast):
         return Type(
-            kind=Kind.Array,
+            kind=types.Kind.Array,
             array_type=Type(
-                kind=Kind.Object,
+                kind=types.Kind.Object,
                 fields=dict(
                     (Key(pair['name']), pair['recipe']) for pair in ast)))
 
     def dictionary(self, ast):
         return Type(
-            kind=Kind.Object,
+            kind=types.Kind.Object,
             fields=dict((pair['key'], pair['type']) for pair in ast))
 
     def primitive(self, ast):
         if ast == 'path':
-            return Type(kind=Kind.Path)
+            return Type(kind=types.Kind.Path)
         elif ast == 'string':
-            return Type(kind=Kind.String)
+            return Type(kind=types.Kind.String)
         elif ast == 'bool':
-            return Type(kind=Kind.Bool)
+            return Type(kind=types.Kind.Bool)
         else:
             raise ValueError('invalid primitive')
 
@@ -221,7 +226,7 @@ class Semantics:
         fields = None
         array_type = None
         if ast['array']:
-            kind = Kind.Array
+            kind = types.Kind.Array
             array_type = inner
         elif isinstance(inner, Type):
             inner.choices = choices
