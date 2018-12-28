@@ -92,7 +92,7 @@ class TestPhase2(unittest.TestCase):
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
-    def test_array(self):
+    def test_string_array(self):
         schema = phase2.MODEL.parse('string[]', 'type')
         result = phase2.Phase2.load(schema, ['a', 'b'])
         self.assertEqual(result, [phase2.Value('a'), phase2.Value('b')])
@@ -177,14 +177,6 @@ class TestPhase2(unittest.TestCase):
             result, phase2.Value(types.Call('env', ('key', )), is_path=True))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
-
-    # def test_string_array(self):
-    #     schema = make_schema("foo { bar: string[]; }")
-    #     schema.validate([{'foo': {'bar': ['x']}}])
-    #     with self.assertRaises(phase2.TypeMismatch):
-    #         schema.validate([{'foo': {'bar': [True]}}])
-    #     with self.assertRaises(phase2.TypeMismatch):
-    #         schema.validate([{'foo': {'bar': 'x'}}])
 
     # def test_object_array(self):
     #     schema = make_schema("foo { bar: { baz: string; }[]; }")
