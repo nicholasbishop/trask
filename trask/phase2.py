@@ -72,11 +72,16 @@ class InvalidFunction(SchemaError):
     pass
 
 
-@attr.s
+@attr.s(init=False)
 class Phase2:
     step = attr.ib()
     variables = attr.ib()
     functions = attr.ib()
+
+    def __init__(self):
+        self.step = None
+        self.variables = {}
+        self.functions = functions.get_functions()
 
     def load_bool(self, _, val, path):
         # pylint: disable=no-self-use
@@ -109,6 +114,17 @@ class Phase2:
             self.step = val
             fields = self.load_any(schema.fields[Key(val.name)], val.recipe,
                                    path + [val.name])
+            # TODO, might be better to encode this in the schema somehow
+            if val.name == 'create-temp-dir':
+                self.variables[fields.var] = types.Kind.Path
+            elif val.name == 'set':
+                for key in val.recipe:
+                    if isinstance(val.recipe[key], str):
+                        self.variables[key] = types.Kind.String
+                    elif isinstance(val.recipe[key], bool):
+                        self.variables[key] = types.Kind.Boolean
+                    else:
+                        raise SchemaError('invalid variable type')
             return types.Step(val.name, fields, val.path)
         else:
             if not isinstance(val, collections.abc.Mapping):
@@ -168,10 +184,9 @@ class Phase2:
 
     @classmethod
     def load(cls, schema, val, variables=None):
-        if variables is None:
-            variables = {}
-        phase2 = cls(step=None, variables=variables,
-                     functions=functions.get_functions())
+        phase2 = cls()
+        if variables is not None:
+            phase2.variables = variables
         return phase2.load_any(schema, val, [])
 
 

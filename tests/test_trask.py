@@ -141,6 +141,11 @@ class TestPhase2(unittest.TestCase):
         self.assertEqual(result, types.Call('env', ('x',)))
         with self.assertRaises(phase2.InvalidFunction):
             phase2.Phase2.load(schema, types.Call('x', ()))
+
+    def test_set(self):
+        loader = phase2.Phase2()
+        result = loader.load_any(phase2.SCHEMA, [types.Step('set', {'foo': 'bar'}, None)], [])
+        self.assertEqual(loader.variables, {'foo': types.Kind.String})
         
 
     # def test_path(self):
