@@ -145,7 +145,7 @@ class Phase2:
                                path + [val.name])
         # TODO, might be better to encode this in the schema somehow
         if val.name == 'create-temp-dir':
-            self.variables[fields.var] = types.Kind.Path
+            self.variables[fields.var.data] = types.Kind.Path
         elif val.name == 'set':
             for key in val.recipe:
                 if isinstance(val.recipe[key], str):

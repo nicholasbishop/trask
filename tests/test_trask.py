@@ -148,6 +148,12 @@ class TestPhase2(unittest.TestCase):
                         [types.Step('set', {'foo': 'bar'}, None)], [])
         self.assertEqual(loader.variables, {'foo': types.Kind.String})
 
+    def test_create_temp_dir(self):
+        loader = phase2.Phase2()
+        loader.load_one(phase2.SCHEMA,
+                        [types.Step('create-temp-dir', {'var': 'foo'}, None)], [])
+        self.assertEqual(loader.variables, {'foo': types.Kind.Path})
+
     # def test_path(self):
     #     schema = make_schema("foo { bar: path; }")
     #     result = schema.validate(
