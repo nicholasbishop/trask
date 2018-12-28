@@ -7,7 +7,6 @@ import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
-import trask
 from trask import functions, phase1, phase2, phase3, types
 
 
@@ -184,7 +183,10 @@ class TestPhase2(unittest.TestCase):
 
     def test_step(self):
         schema = phase2.MODEL.parse('foo {}')
-        phase2.Phase2.load(schema, [types.Step('foo', {}, None)])
+        result = phase2.Phase2.load(schema, [types.Step('foo', {}, None)])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].__class__, types.Step)
+        self.assertEqual(result[0].name, 'foo')
 
     def test_invalid_object(self):
         schema = phase2.MODEL.parse('{}', 'type')
@@ -254,6 +256,7 @@ class TestValue(unittest.TestCase):
     def test_path(self):
         class Context:
             def repath(self, path):
+                # pylint: disable=no-self-use
                 return os.path.join('/root', path)
 
         self.assertEqual(
@@ -264,6 +267,7 @@ class TestValue(unittest.TestCase):
 
         class Context:
             def resolve(self, var):
+                # pylint: disable=no-self-use
                 this.assertEqual(var.name, 'foo')
                 return 'myResult'
 
@@ -272,7 +276,8 @@ class TestValue(unittest.TestCase):
 
     def test_var_choices(self):
         class Context:
-            def resolve(self, var):
+            def resolve(self, _):
+                # pylint: disable=no-self-use
                 return 'z'
 
         self.assertEqual(
@@ -286,6 +291,7 @@ class TestValue(unittest.TestCase):
 
         class Context:
             def call(self, call):
+                # pylint: disable=no-self-use
                 this.assertEqual(call.name, 'foo')
                 return 'myResult'
 
