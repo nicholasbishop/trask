@@ -288,16 +288,17 @@ class Semantics:
     def type(self, ast):
         inner = ast['inner']
         choices = choices = ast['choices']
-        fields = None
-        array_type = None
         if ast['array']:
             kind = types.Kind.Array
             array_type = inner
-        elif isinstance(inner, Type):
+            return Type(
+                kind=types.Kind.Array,
+                array_type=array_type,
+                fields=None,
+                choices=choices)
+        else:
             inner.choices = choices
             return inner
-        return Type(
-            kind=kind, array_type=array_type, fields=fields, choices=choices)
 
 
 MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
