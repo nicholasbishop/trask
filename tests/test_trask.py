@@ -15,6 +15,10 @@ class TestGrammar(unittest.TestCase):
         self.assertIs(phase1.MODEL.parse('true', 'boolean'), True)
         self.assertIs(phase1.MODEL.parse('false', 'boolean'), False)
 
+    def test_invalid_bool(self):
+        with self.assertRaises(ValueError):
+            phase1.Semantics().boolean('invalid-bool')
+
     def test_string(self):
         self.assertEqual(
             phase1.MODEL.parse("'myString'", 'string'), 'myString')
@@ -63,6 +67,11 @@ class TestPhase1(fake_filesystem_unittest.TestCase):
         result = phase1.load('/a')
         expected = phase1.load('/b')
         self.assertEqual(result, expected)
+
+    def test_include_not_variable(self):
+        self.fs.create_file('/a', contents="include { file myVar }")
+        with self.assertRaises(TypeError):
+            phase1.load('/a')
 
 
 class TestPhase2(unittest.TestCase):
