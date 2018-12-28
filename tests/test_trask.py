@@ -155,6 +155,14 @@ class TestPhase2(unittest.TestCase):
                         [types.Step('set', {'foo': 'bar'}, None)], [])
         self.assertEqual(loader.variables, {'foo': types.Kind.String})
 
+    def test_set_call(self):
+        loader = phase2.Phase2()
+        loader.load_one(
+            phase2.SCHEMA,
+            [types.Step('set', {'foo': types.Call('env',
+                                                  ('key', ))}, None)], [])
+        self.assertEqual(loader.variables, {'foo': types.Kind.String})
+
     def test_create_temp_dir(self):
         loader = phase2.Phase2()
         loader.load_one(phase2.SCHEMA,

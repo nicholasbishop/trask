@@ -98,7 +98,8 @@ class InvalidFunction(SchemaError):
 
 def does_substition_match(type1, type2):
     path_types = (types.Kind.String, types.Kind.Path)
-    return ((type1 == type2) or (type1 in path_types and type2 in path_types))
+    return ((type1 == type2) or (type1 in path_types and type2 in path_types)
+            or type1 == types.Kind.Any or type2 == types.Kind.Any)
 
 
 @attr.s(init=False)
@@ -157,6 +158,9 @@ class Phase2:
                     self.variables[key] = types.Kind.String
                 elif isinstance(val.recipe[key], bool):
                     self.variables[key] = types.Kind.Bool
+                elif isinstance(val.recipe[key], types.Call):
+                    self.variables[key] = self.functions[val.recipe[key].
+                                                         name].return_type
                 else:
                     raise SchemaError('invalid variable type')
         return types.Step(val.name, fields, val.path)
