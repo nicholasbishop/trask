@@ -3,7 +3,6 @@
 import argparse
 
 import trask
-from trask import phase1, phase2
 
 
 def main():
@@ -13,11 +12,7 @@ def main():
     parser.add_argument('path')
     args = parser.parse_args()
 
-    root = phase1.load(args.path)
-    root = phase2.Phase2.load(phase2.SCHEMA, root)
-
-    if not args.dry_run:
-        trask.run(root)
+    trask.run(args.path, args.dry_run)
 
 
 main()

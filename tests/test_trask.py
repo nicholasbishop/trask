@@ -324,11 +324,16 @@ class TestMakeKeysSafe(unittest.TestCase):
 
 
 class TestPhase3(unittest.TestCase):
+    def test_run_cmd(self):
+        # pylint: disable=no-self-use
+        phase3.run_cmd('true')
+
     def test_rust(self):
-        lines1 = phase3.docker_install_rust({})
-        lines2 = phase3.docker_install_rust({'channel': 'stable'})
-        lines3 = phase3.docker_install_rust({'channel': 'nightly'})
+        ctx = phase3.Context()
+        lines1 = phase3.docker_install_rust({}, ctx)
+        lines2 = phase3.docker_install_rust({'channel': 'stable'}, ctx)
+        lines3 = phase3.docker_install_rust({'channel': 'nightly'}, ctx)
         self.assertEqual(lines1, lines2)
         self.assertEqual(len(lines1) + 1, len(lines3))
         with self.assertRaises(ValueError):
-            phase3.docker_install_rust({'channel': 'badChannel'})
+            phase3.docker_install_rust({'channel': 'badChannel'}, ctx)

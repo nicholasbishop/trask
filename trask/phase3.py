@@ -15,9 +15,10 @@ def run_cmd(*cmd):
 
 
 class Context:
-    def __init__(self):
+    def __init__(self, dry_run=True):
         self.variables = {}
         self.funcs = functions.get_functions()
+        self.dry_run = dry_run
 
     def repath(self, path):
         return os.path.abspath(os.path.join(self.path, path))
@@ -30,7 +31,7 @@ class Context:
         return val
 
 
-def docker_install_rust(recipe):
+def docker_install_rust(recipe, ctx):
     lines = [
         'RUN curl -o /rustup.sh https://sh.rustup.rs', 'RUN sh /rustup.sh -y',
         'ENV PATH=$PATH:/root/.cargo/bin'
@@ -44,7 +45,7 @@ def docker_install_rust(recipe):
     return lines
 
 
-def create_dockerfile(obj):
+def create_dockerfile(recipe, ctx):
     lines = ['FROM ' + obj['from']]
     for recipe_name, recipe in obj['recipes'].items():
         if recipe_name == 'yum-install':
@@ -68,7 +69,7 @@ def create_dockerfile(obj):
     return '\n'.join(lines)
 
 
-def handle_docker_build(keys):
+def handle_docker_build(recipe, ctx):
     cmd = ['docker', 'build']
     cmd = ['sudo'] + cmd  # TODO
     tag = keys.get('tag')
@@ -147,7 +148,7 @@ def handle_ssh(ctx, obj):
     run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
 
 
-def run(steps):
+def run(steps, ctx):
     handlers = {
         'docker-build': handle_docker_build,
         'docker-run': handle_docker_run,
@@ -158,4 +159,4 @@ def run(steps):
     }
 
     for step in steps:
-        handlers[step.name](step.recipe)
+        handlers[step.name](step.recipe, ctx)
