@@ -5,6 +5,7 @@ import attr
 
 
 class Kind:
+    Any = 'any'
     Bool = 'bool'
     String = 'string'
     Path = 'path'

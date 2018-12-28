@@ -7,7 +7,7 @@ create-temp-dir {
 }
 
 set {
-  *: string;
+  *: any;
 }
 
 docker-build {

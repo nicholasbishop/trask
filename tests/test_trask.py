@@ -144,7 +144,7 @@ class TestPhase2(unittest.TestCase):
 
     def test_set(self):
         loader = phase2.Phase2()
-        result = loader.load_any(phase2.SCHEMA,
+        result = loader.load_one(phase2.SCHEMA,
                                  [types.Step('set', {'foo': 'bar'}, None)], [])
         self.assertEqual(loader.variables, {'foo': types.Kind.String})
 

@@ -20,7 +20,7 @@ GRAMMAR = '''
   key = required:[ "required" ] name:(ident | "*" ) ;
   type = inner:( primitive | dictionary ) array:[ "[]" ] choices:[ choices ];
   choices = "choices" "(" ","%{ @:string } ")" ;
-  primitive = "path" | "string" | "bool" ;
+  primitive = "path" | "string" | "bool" | "any" ;
   boolean = "true" | "false" ;
   string = "'" @:/[^']*/ "'" ;
   ident = /[a-zA-Z0-9_-]+/ ;
@@ -83,6 +83,10 @@ class Phase2:
         self.variables = {}
         self.functions = functions.get_functions()
 
+    def load_any(self, _, val, path):
+        # pylint: disable=no-self-use
+        return val
+
     def load_bool(self, _, val, path):
         # pylint: disable=no-self-use
         if not isinstance(val, bool):
@@ -106,13 +110,13 @@ class Phase2:
         lst = []
         for index, elem in enumerate(val):
             subpath = path + [index]
-            lst.append(self.load_any(schema.array_type, elem, subpath))
+            lst.append(self.load_one(schema.array_type, elem, subpath))
         return lst
 
     def load_object(self, schema, val, path):
         if isinstance(val, types.Step):
             self.step = val
-            fields = self.load_any(schema.fields[Key(val.name)], val.recipe,
+            fields = self.load_one(schema.fields[Key(val.name)], val.recipe,
                                    path + [val.name])
             # TODO, might be better to encode this in the schema somehow
             if val.name == 'create-temp-dir':
@@ -133,14 +137,14 @@ class Phase2:
             if schema.wildcard_key():
                 for key in val:
                     subpath = path + [key]
-                    temp_obj[key] = self.load_any(schema.fields[Key('*')],
+                    temp_obj[key] = self.load_one(schema.fields[Key('*')],
                                                   val[key], subpath)
             else:
                 for key in val:
                     if Key(key) not in schema.fields:
                         raise InvalidKey(path, key)
                     subpath = path + [key]
-                    temp_obj[key] = self.load_any(schema.fields[Key(key)],
+                    temp_obj[key] = self.load_one(schema.fields[Key(key)],
                                                   val[key], subpath)
             for key in schema.fields:
                 if key.name not in temp_obj and key.name != '*':
@@ -152,7 +156,7 @@ class Phase2:
             cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
             return cls(**temp_obj)
 
-    def load_any(self, schema, val, path):
+    def load_one(self, schema, val, path):
         if isinstance(val, types.Var):
             if val.name not in self.variables:
                 raise UnboundVariable(path)
@@ -169,6 +173,7 @@ class Phase2:
             return types.Call(val.name, val.args)
         else:
             result = {
+                types.Kind.Any: self.load_any,
                 types.Kind.Bool: self.load_bool,
                 types.Kind.String: self.load_string,
                 types.Kind.Path: self.load_path,
@@ -187,7 +192,7 @@ class Phase2:
         phase2 = cls()
         if variables is not None:
             phase2.variables = variables
-        return phase2.load_any(schema, val, [])
+        return phase2.load_one(schema, val, [])
 
 
 @attr.s
@@ -232,6 +237,8 @@ class Semantics:
             return Type(kind=types.Kind.String)
         elif ast == 'bool':
             return Type(kind=types.Kind.Bool)
+        elif ast == 'any':
+            return Type(kind=types.Kind.Any)
         else:
             raise ValueError('invalid primitive')
 
