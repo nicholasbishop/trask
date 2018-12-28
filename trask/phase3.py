@@ -37,7 +37,7 @@ def docker_install_rust(recipe, ctx):
         'RUN curl -o /rustup.sh https://sh.rustup.rs', 'RUN sh /rustup.sh -y',
         'ENV PATH=$PATH:/root/.cargo/bin'
     ]
-    channel = recipe.get('channel', 'stable')
+    channel = recipe.channel.get(ctx) or 'stable'
     if channel != 'stable':
         if channel == 'nightly':
             lines.append('RUN rustup default nightly')
@@ -47,7 +47,7 @@ def docker_install_rust(recipe, ctx):
 
 
 def create_dockerfile(recipe, ctx):
-    lines = ['FROM ' + obj['from']]
+    lines = ['FROM ' + recipe.from_.get(ctx)]
     for recipe_name, recipe in obj['recipes'].items():
         if recipe_name == 'yum-install':
             lines.append('RUN yum install -y ' + ' '.join(recipe['pkg']))
