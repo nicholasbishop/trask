@@ -2,7 +2,6 @@
 
 # pylint: disable=missing-docstring
 
-import os
 import unittest
 
 from pyfakefs import fake_filesystem_unittest

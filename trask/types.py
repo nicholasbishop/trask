@@ -1,3 +1,6 @@
+# TODO: remove this
+# pylint: disable=missing-docstring
+
 import attr
 
 

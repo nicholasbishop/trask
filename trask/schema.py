@@ -1,3 +1,6 @@
+# TODO: remove this
+# pylint: disable=missing-docstring
+
 import collections
 import keyword
 import os
@@ -78,17 +81,19 @@ class Phase2:
     step = attr.ib()
     variables = attr.ib()
 
-    def load_bool(self, schema, val, path):
+    def load_bool(self, _, val, path):
+        # pylint: disable=no-self-use
         if not isinstance(val, bool):
             raise TypeMismatch(path)
         return val
 
-    def load_string(self, schema, val, path):
+    def load_string(self, _, val, path):
+        # pylint: disable=no-self-use
         if not isinstance(val, str):
             raise TypeMismatch(path)
         return val
 
-    def load_path(self, schema, val, path):
+    def load_path(self, _, val, path):
         if not isinstance(val, str):
             raise TypeMismatch(path)
         return os.path.abspath(os.path.join(self.step.path, val))
@@ -156,7 +161,7 @@ class Phase2:
                     raise InvalidChoice()
 
             return result
-        
+
     @classmethod
     def load(cls, schema, val):
         phase2 = cls(step=None, variables={})
@@ -205,10 +210,11 @@ class Semantics:
             return Type(kind=Kind.String)
         elif ast == 'bool':
             return Type(kind=Kind.Bool)
+        else:
+            raise ValueError('invalid primitive')
 
     def type(self, ast):
         inner = ast['inner']
-        is_array = ast['array'] or False
         choices = choices = ast['choices']
         fields = None
         array_type = None
@@ -227,5 +233,3 @@ MODEL = tatsu.compile(GRAMMAR, semantics=Semantics())
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(SCRIPT_DIR, 'schema')) as rfile:
     SCHEMA = MODEL.parse(rfile.read())
-
-
