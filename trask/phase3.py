@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import tempfile
 
+import attr
+
 from trask import functions, types
 
 
@@ -161,6 +163,7 @@ def resolve(val, ctx):
         lst = []
         for elem in val:
             lst.append(resolve(elem, ctx))
+        return lst
     else:
         dct = attr.asdict(val)
         for key, subval in dct:

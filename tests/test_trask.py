@@ -8,7 +8,6 @@ import unittest
 import attr
 from pyfakefs import fake_filesystem_unittest
 
-import trask
 from trask import functions, phase1, phase2, phase3, types
 
 
