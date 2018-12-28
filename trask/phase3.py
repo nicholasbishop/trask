@@ -32,12 +32,12 @@ class Context:
         return val
 
 
-def docker_install_rust(recipe, ctx):
+def docker_install_rust(recipe, _):
     lines = [
         'RUN curl -o /rustup.sh https://sh.rustup.rs', 'RUN sh /rustup.sh -y',
         'ENV PATH=$PATH:/root/.cargo/bin'
     ]
-    channel = recipe.channel.get(ctx) or 'stable'
+    channel = recipe.channel or 'stable'
     if channel != 'stable':
         if channel == 'nightly':
             lines.append('RUN rustup default nightly')
@@ -46,23 +46,28 @@ def docker_install_rust(recipe, ctx):
     return lines
 
 
-def create_dockerfile(recipe, ctx):
-    lines = ['FROM ' + recipe.from_.get(ctx)]
+def docker_install_nodejs(recipe, _):
+    nodejs_version = recipe.version
+    pkg = recipe.pkg or []
+    nvm_version = 'v0.33.11'
+    url = ('https://raw.githubusercontent.com/' +
+           'creationix/nvm/{}/install.sh'.format(nvm_version))
+    return [
+        'RUN curl -o- {} | bash'.format(url),
+        'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.
+        format(nodejs_version) + ' '.join(pkg)
+    ]
+
+
+def create_dockerfile(recipe, _):
+    lines = ['FROM ' + recipe.from_]
     for recipe_name, recipe in obj['recipes'].items():
         if recipe_name == 'yum-install':
             lines.append('RUN yum install -y ' + ' '.join(recipe['pkg']))
         elif recipe_name == 'install-rust':
-            lines += docker_install_rust(recipe)
+            lines += docker_install_rust(recipe, ctx)
         elif recipe_name == 'install-nodejs':
-            nodejs_version = recipe['version']
-            nvm_version = 'v0.33.11'
-            url = ('https://raw.githubusercontent.com/' +
-                   'creationix/nvm/{}/install.sh'.format(nvm_version))
-            lines += [
-                'RUN curl -o- {} | bash'.format(url),
-                'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.
-                format(nodejs_version) + ' '.join(recipe.get('pkg'))
-            ]
+            lines += docker_install_nodejs(recipe, ctx)
         elif recipe_name == 'pip3-install':
             lines.append('RUN pip3 install ' + ' '.join(recipe['pkg']))
 
@@ -149,6 +154,25 @@ def handle_ssh(ctx, obj):
     run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
 
 
+def resolve(val, ctx):
+    if isinstance(val, Value):
+        return val.get(ctx)
+    elif isinstance(val, list):
+        lst = []
+        for elem in val:
+            lst.append(resolve(elem, ctx))
+    else:
+        dct = attr.asdict(val)
+        for key, subval in dct:
+            setattr(val, key, resolve(subval, ctx))
+        return val
+
+
+def resolve_step(step, ctx):
+    recipe = resolve(step.recipe, ctx)
+    return types.Step(step.name, recipe, step.path)
+
+
 def run(steps, ctx):
     handlers = {
         'docker-build': handle_docker_build,
@@ -160,5 +184,6 @@ def run(steps, ctx):
     }
 
     for step in steps:
-        ctx.step = step
-        handlers[step.name](step.recipe, ctx)
+        rstep = resolve_step(step, ctx)
+        ctx.step = rstep
+        handlers[rstep.name](rstep.recipe, ctx)

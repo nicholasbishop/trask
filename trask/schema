@@ -21,7 +21,7 @@ docker-build {
       channel: string choices('nightly', 'stable');
     };
     install-nodejs: {
-      version: string;
+      required version: string;
       pkg: string[];
     };
     pip3-install: {

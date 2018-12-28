@@ -5,6 +5,7 @@
 import os
 import unittest
 
+import attr
 from pyfakefs import fake_filesystem_unittest
 
 import trask
@@ -324,26 +325,29 @@ class TestMakeKeysSafe(unittest.TestCase):
         self.assertEqual(phase2.make_keys_safe({'from': 1}), {'from_': 1})
 
 
-class Empty:
-    pass
-
-
 class TestPhase3(unittest.TestCase):
     def test_run_cmd(self):
         # pylint: disable=no-self-use
         phase3.run_cmd('true')
 
     def test_rust(self):
-        ctx = phase3.Context()
-        obj = Empty()
-        obj.channel = phase2.Value(None)
-        lines1 = phase3.docker_install_rust(obj, ctx)
-        obj.channel = phase2.Value('stable')
-        lines2 = phase3.docker_install_rust(obj, ctx)
-        obj.channel = phase2.Value('nightly')
-        lines3 = phase3.docker_install_rust(obj, ctx)
+        obj = attr.make_class('Mock', ['channel'])
+        obj.channel = None
+        lines1 = phase3.docker_install_rust(obj, None)
+        obj.channel = 'stable'
+        lines2 = phase3.docker_install_rust(obj, None)
+        obj.channel = 'nightly'
+        lines3 = phase3.docker_install_rust(obj, None)
         self.assertEqual(lines1, lines2)
         self.assertEqual(len(lines1) + 1, len(lines3))
         with self.assertRaises(ValueError):
-            obj.channel = phase2.Value('badChannel')
-            phase3.docker_install_rust(obj, ctx)
+            obj.channel = 'badChannel'
+            phase3.docker_install_rust(obj, None)
+
+    def test_install_nodejs(self):
+        obj = attr.make_class('Mock', ['pkg', 'version'])
+        obj.version = '1.2.3'
+        obj.pkg = None
+        lines = phase3.docker_install_nodejs(obj, None)
+        self.assertEqual(len(lines), 2)
+        self.assertIn(obj.version, lines[1])
