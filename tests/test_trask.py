@@ -8,7 +8,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 import trask
-from trask import functions, phase1, phase2, types
+from trask import functions, phase1, phase2, phase3, types
 
 
 class TestGrammar(unittest.TestCase):
@@ -40,17 +40,6 @@ class TestGrammar(unittest.TestCase):
                 'a': 'b',
                 'c': 'd',
             })
-
-
-class TestDockerfile(unittest.TestCase):
-    def test_rust(self):
-        lines1 = trask.docker_install_rust({})
-        lines2 = trask.docker_install_rust({'channel': 'stable'})
-        lines3 = trask.docker_install_rust({'channel': 'nightly'})
-        self.assertEqual(lines1, lines2)
-        self.assertEqual(len(lines1) + 1, len(lines3))
-        with self.assertRaises(ValueError):
-            trask.docker_install_rust({'channel': 'badChannel'})
 
 
 class TestPhase1(fake_filesystem_unittest.TestCase):
@@ -324,3 +313,14 @@ class TestMakeKeysSafe(unittest.TestCase):
 
     def test_keyword(self):
         self.assertEqual(phase2.make_keys_safe({'from': 1}), {'from_': 1})
+
+
+class TestPhase3(unittest.TestCase):
+    def test_rust(self):
+        lines1 = phase3.docker_install_rust({})
+        lines2 = phase3.docker_install_rust({'channel': 'stable'})
+        lines3 = phase3.docker_install_rust({'channel': 'nightly'})
+        self.assertEqual(lines1, lines2)
+        self.assertEqual(len(lines1) + 1, len(lines3))
+        with self.assertRaises(ValueError):
+            phase3.docker_install_rust({'channel': 'badChannel'})
