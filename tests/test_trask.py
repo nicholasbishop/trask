@@ -225,6 +225,11 @@ class TestPhase2(unittest.TestCase):
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
+    def test_invalid_call_type(self):
+        schema = phase2.MODEL.parse('bool', 'type')
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, types.Call('env', ('key', )))
+
     def test_non_object_wildcard(self):
         self.assertFalse(phase2.Type(types.Kind.Bool).wildcard_key())
 
