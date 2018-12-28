@@ -178,14 +178,6 @@ class TestPhase2(unittest.TestCase):
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
-    # def test_path(self):
-    #     schema = make_schema("foo { bar: path; }")
-    #     result = schema.validate(
-    #         [types.Step('foo', {'bar': 'baz'}, '/myPath')])
-    #     self.assertEqual(result[0].recipe.bar, '/myPath/baz')
-    #     with self.assertRaises(phase2.TypeMismatch):
-    #         schema.validate([{'foo': {'bar': True}}])
-
     # def test_string_array(self):
     #     schema = make_schema("foo { bar: string[]; }")
     #     schema.validate([{'foo': {'bar': ['x']}}])
