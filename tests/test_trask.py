@@ -197,7 +197,3 @@ class TestPhase2(unittest.TestCase):
     #     self.assertEqual(obj.__class__.__name__, 'SchemaClass')
     #     obj = obj.bar
     #     self.assertEqual(obj, 'baz')
-
-
-if __name__ == '__main__':
-    unittest.main()
