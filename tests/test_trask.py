@@ -58,7 +58,7 @@ class TestPhase1(fake_filesystem_unittest.TestCase):
         self.assertEqual(result, [])
 
     def test_include(self):
-        self.fs.create_file('/a', contents="include { file '/b' }")
+        self.fs.create_file('/a', contents="include { file 'b' }")
         self.fs.create_file('/b', contents="foo {} bar {}")
         result = phase1.load('/a')
         expected = phase1.load('/b')
@@ -74,21 +74,21 @@ class TestPhase2(unittest.TestCase):
     def test_bool(self):
         schema = phase2.MODEL.parse('bool', 'type')
         result = phase2.Phase2.load(schema, True)
-        self.assertEqual(result, True)
+        self.assertEqual(result, phase2.Value(True))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, 'foo')
 
     def test_string(self):
         schema = phase2.MODEL.parse('string', 'type')
         result = phase2.Phase2.load(schema, 'myString')
-        self.assertEqual(result, 'myString')
+        self.assertEqual(result, phase2.Value('myString'))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
     def test_array(self):
         schema = phase2.MODEL.parse('string[]', 'type')
         result = phase2.Phase2.load(schema, ['a', 'b'])
-        self.assertEqual(result, ['a', 'b'])
+        self.assertEqual(result, [phase2.Value('a'), phase2.Value('b')])
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, 'foo')
         with self.assertRaises(phase2.TypeMismatch):
@@ -99,7 +99,7 @@ class TestPhase2(unittest.TestCase):
     def test_object(self):
         schema = phase2.MODEL.parse("{ foo: string; }", 'type')
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
-        self.assertEqual(result.foo, 'bar')
+        self.assertEqual(result.foo, phase2.Value('bar'))
         result = phase2.Phase2.load(schema, {})
         self.assertEqual(result.foo, None)
         with self.assertRaises(phase2.InvalidKey):
@@ -108,7 +108,7 @@ class TestPhase2(unittest.TestCase):
     def test_required_key(self):
         schema = phase2.MODEL.parse("{ required foo: string; }", 'type')
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
-        self.assertEqual(result.foo, 'bar')
+        self.assertEqual(result.foo, phase2.Value('bar'))
         with self.assertRaises(phase2.MissingKey):
             phase2.Phase2.load(schema, {})
 
@@ -116,12 +116,12 @@ class TestPhase2(unittest.TestCase):
         schema = phase2.MODEL.parse("{ *: string; }", 'type')
         phase2.Phase2.load(schema, {})
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
-        self.assertEqual(result.foo, 'bar')
+        self.assertEqual(result.foo, phase2.Value('bar'))
 
     def test_choice(self):
         schema = phase2.MODEL.parse("string choices('x', 'y')", 'type')
         result = phase2.Phase2.load(schema, 'x')
-        self.assertEqual(result, 'x')
+        self.assertEqual(result, phase2.Value('x'))
         with self.assertRaises(phase2.InvalidChoice):
             phase2.Phase2.load(schema, 'foo')
 
@@ -129,7 +129,7 @@ class TestPhase2(unittest.TestCase):
         schema = phase2.MODEL.parse('string', 'type')
         result = phase2.Phase2.load(schema, types.Var('x'),
                                     {'x': types.Kind.String})
-        self.assertEqual(result, types.Var('x'))
+        self.assertEqual(result, phase2.Value(types.Var('x')))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, types.Var('x'), {'x': types.Kind.Bool})
         with self.assertRaises(phase2.UnboundVariable):
@@ -138,7 +138,7 @@ class TestPhase2(unittest.TestCase):
     def test_call(self):
         schema = phase2.MODEL.parse('string', 'type')
         result = phase2.Phase2.load(schema, types.Call('env', ('x', )))
-        self.assertEqual(result, types.Call('env', ('x', )))
+        self.assertEqual(result, phase2.Value(types.Call('env', ('x', ))))
         with self.assertRaises(phase2.InvalidFunction):
             phase2.Phase2.load(schema, types.Call('x', ()))
 

@@ -10,7 +10,7 @@ import tempfile
 import attr
 import tatsu
 
-from trask import types
+from trask import functions, types
 
 
 def run_cmd(*cmd):
@@ -18,21 +18,10 @@ def run_cmd(*cmd):
     subprocess.check_call(cmd)
 
 
-def get_from_env(_, args):
-    key = args[0]
-    return os.environ[key]
-
-
 class Context:
-    def __init__(self, trask_file=None):
-        self.path = None
-        self.set_path_from_file(trask_file)
+    def __init__(self):
         self.variables = {}
-        self.funcs = {'env': get_from_env}
-
-    def set_path_from_file(self, trask_file):
-        if trask_file is not None:
-            self.path = os.path.abspath(os.path.dirname(trask_file))
+        self.funcs = functions.get_functions()
 
     def repath(self, path):
         return os.path.abspath(os.path.join(self.path, path))
@@ -40,7 +29,7 @@ class Context:
     def resolve(self, val):
         if isinstance(val, types.Var):
             return self.variables[val.name]
-        elif isinstance(val, Call):
+        elif isinstance(val, types.Call):
             return self.funcs[val.name](self, val.args)
         return val
 

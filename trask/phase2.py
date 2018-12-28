@@ -33,6 +33,30 @@ class Key:
     is_required = attr.ib(default=False, cmp=False, hash=False)
 
 
+@attr.s(frozen=True)
+class Value:
+    data = attr.ib()
+    is_path = attr.ib(default=False)
+
+    def get(self, ctx):
+        if isinstance(self.data, bool):
+            return self.data
+        elif isinstance(self.data, str):
+            if self.is_path is True:
+                return ctx.repath(self.data)
+            else:
+                return self.data
+        elif isinstance(self.data, types.Var):
+            result = ctx.resolve(self.data)
+            if self.data.choices is not None:
+                if result not in self.data.choices:
+                    raise ChoiceError('invalid choice')
+        elif isinstance(self.data, types.Call):
+            return ctx.call(self.data)
+        else:
+            raise TypeError('invalid value type')
+
+
 def make_keys_safe(dct):
     """Modify the keys in |dct| to be valid attribute names."""
     result = {}
@@ -87,24 +111,24 @@ class Phase2:
         # pylint: disable=no-self-use
         if val is None:
             raise TypeMismatch(path)
-        return val
+        return Value(val)
 
     def load_bool(self, _, val, path):
         # pylint: disable=no-self-use
         if not isinstance(val, bool):
             raise TypeMismatch(path)
-        return val
+        return Value(val)
 
     def load_string(self, _, val, path):
         # pylint: disable=no-self-use
         if not isinstance(val, str):
             raise TypeMismatch(path)
-        return val
+        return Value(val)
 
     def load_path(self, _, val, path):
         if not isinstance(val, str):
             raise TypeMismatch(path)
-        return os.path.abspath(os.path.join(self.step.path, val))
+        return Value(val, is_path=True)
 
     def load_array(self, schema, val, path):
         if not isinstance(val, list):
@@ -162,20 +186,21 @@ class Phase2:
             return cls(**temp_obj)
 
     def load_one(self, schema, val, path):
+        is_path = schema.kind == types.Kind.Path
         if isinstance(val, types.Var):
             if val.name not in self.variables:
                 raise UnboundVariable(path)
             elif self.variables[val.name] != schema.kind:
                 raise TypeMismatch(path)
 
-            return types.Var(val.name, choices=schema.choices)
+            return Value(types.Var(val.name, choices=schema.choices), is_path)
         elif isinstance(val, types.Call):
             if val.name not in self.functions:
                 raise InvalidFunction(path)
             elif self.functions[val.name].return_type != schema.kind:
                 raise TypeMismatch(path)
 
-            return types.Call(val.name, val.args)
+            return Value(types.Call(val.name, val.args), is_path)
         else:
             result = {
                 types.Kind.Any: self.load_any,
@@ -187,17 +212,17 @@ class Phase2:
             }[schema.kind](schema, val, path)
 
             if schema.choices is not None:
-                if result not in schema.choices:
+                if result.data not in schema.choices:
                     raise InvalidChoice()
 
             return result
 
     @classmethod
     def load(cls, schema, val, variables=None):
-        phase2 = cls()
+        loader = cls()
         if variables is not None:
-            phase2.variables = variables
-        return phase2.load_one(schema, val, [])
+            loader.variables = variables
+        return loader.load_one(schema, val, [])
 
 
 @attr.s
