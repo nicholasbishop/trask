@@ -39,7 +39,9 @@ class Value:
     is_path = attr.ib(default=False)
 
     def get(self, ctx):
-        if isinstance(self.data, bool):
+        if self.data is None:
+            return None
+        elif isinstance(self.data, bool):
             return self.data
         elif isinstance(self.data, str):
             if self.is_path is True:
