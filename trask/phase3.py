@@ -19,9 +19,10 @@ class Context:
         self.variables = {}
         self.funcs = functions.get_functions()
         self.dry_run = dry_run
+        self.step = None
 
     def repath(self, path):
-        return os.path.abspath(os.path.join(self.path, path))
+        return os.path.abspath(os.path.join(self.step.path, path))
 
     def resolve(self, val):
         if isinstance(val, types.Var):
@@ -159,4 +160,5 @@ def run(steps, ctx):
     }
 
     for step in steps:
+        ctx.step = step
         handlers[step.name](step.recipe, ctx)
