@@ -20,7 +20,7 @@ class Function:
     impl = attr.ib()
 
 
-def get_from_env(_, args):
+def get_from_env(args):
     key = args[0]
     return os.environ[key]
 

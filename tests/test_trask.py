@@ -8,7 +8,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 import trask
-from trask import phase1, phase2, types
+from trask import functions, phase1, phase2, types
 
 
 class TestGrammar(unittest.TestCase):
@@ -261,3 +261,9 @@ class TestValue(unittest.TestCase):
     def test_invalid_value(self):
         with self.assertRaises(TypeError):
             phase2.Value(object()).get(None)
+
+
+class TestFunctions(unittest.TestCase):
+    def test_get_from_env(self):
+        os.environ['MY_TEST_VAR'] = 'my-test-value'
+        self.assertEqual(functions.get_from_env(('MY_TEST_VAR',)), 'my-test-value')
