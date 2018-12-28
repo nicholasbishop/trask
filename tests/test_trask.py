@@ -85,6 +85,13 @@ class TestPhase2(unittest.TestCase):
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
+    def test_path(self):
+        schema = phase2.MODEL.parse('path', 'type')
+        result = phase2.Phase2.load(schema, 'myPath')
+        self.assertEqual(result, phase2.Value('myPath', is_path=True))
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, True)
+
     def test_array(self):
         schema = phase2.MODEL.parse('string[]', 'type')
         result = phase2.Phase2.load(schema, ['a', 'b'])
@@ -151,8 +158,17 @@ class TestPhase2(unittest.TestCase):
     def test_create_temp_dir(self):
         loader = phase2.Phase2()
         loader.load_one(phase2.SCHEMA,
-                        [types.Step('create-temp-dir', {'var': 'foo'}, None)], [])
+                        [types.Step('create-temp-dir', {'var': 'foo'}, None)],
+                        [])
         self.assertEqual(loader.variables, {'foo': types.Kind.Path})
+
+    def test_call_to_path(self):
+        schema = phase2.MODEL.parse('path', 'type')
+        result = phase2.Phase2.load(schema, types.Call('env', ('key', )))
+        self.assertEqual(
+            result, phase2.Value(types.Call('env', ('key', )), is_path=True))
+        with self.assertRaises(phase2.TypeMismatch):
+            phase2.Phase2.load(schema, True)
 
     # def test_path(self):
     #     schema = make_schema("foo { bar: path; }")

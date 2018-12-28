@@ -96,6 +96,11 @@ class InvalidFunction(SchemaError):
     pass
 
 
+def does_substition_match(type1, type2):
+    path_types = (types.Kind.String, types.Kind.Path)
+    return ((type1 == type2) or (type1 in path_types and type2 in path_types))
+
+
 @attr.s(init=False)
 class Phase2:
     step = attr.ib()
@@ -190,14 +195,17 @@ class Phase2:
         if isinstance(val, types.Var):
             if val.name not in self.variables:
                 raise UnboundVariable(path)
-            elif self.variables[val.name] != schema.kind:
+            elif not does_substition_match(self.variables[val.name],
+                                           schema.kind):
                 raise TypeMismatch(path)
 
             return Value(types.Var(val.name, choices=schema.choices), is_path)
         elif isinstance(val, types.Call):
             if val.name not in self.functions:
                 raise InvalidFunction(path)
-            elif self.functions[val.name].return_type != schema.kind:
+            elif not does_substition_match(
+                    self.functions[val.name].return_type, schema.kind):
+
                 raise TypeMismatch(path)
 
             return Value(types.Call(val.name, val.args), is_path)
