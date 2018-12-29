@@ -102,7 +102,7 @@ def handle_docker_run(recipe, ctx):
         host = volume.host
         container = volume.container
         cmd += ['--volume', '{}:{}:z'.format(host, container)]
-    cmd.append(recipe['image'])
+    cmd.append(recipe.image)
     cmd += ['sh', '-c', ' && '.join(recipe.commands)]
     ctx.run_cmd(*cmd)
 

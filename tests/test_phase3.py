@@ -109,6 +109,17 @@ class TestResolve(unittest.TestCase):
         phase3.resolve_step(step, None)
 
 
+def context_command_recorder():
+    ctx = phase3.Context()
+    ctx.commands = []
+
+    def run_cmd(self, *cmd):
+        self.commands.append(cmd)
+
+    ctx.run_cmd = run_cmd.__get__(ctx, phase3.Context)
+    return ctx
+
+
 class TestPhase3(unittest.TestCase):
     def test_handlers(self):
         """Check that all of the steps in the schema have handlers."""
@@ -155,6 +166,25 @@ class TestPhase3(unittest.TestCase):
         lines = phase3.docker_install_nodejs(obj)
         self.assertEqual(len(lines), 2)
         self.assertIn(obj.version, lines[1])
+
+    def test_handle_docker_run(self):
+        cls = attr.make_class('Mock', ['init', 'volumes', 'image', 'commands'])
+        obj = cls(init=False, volumes=[], image='myImage', commands=['x', 'y'])
+        ctx = context_command_recorder()
+        phase3.handle_docker_run(obj, ctx)
+        self.assertEqual(
+            ctx.commands,
+            [('sudo', 'docker', 'run', 'myImage', 'sh', '-c', 'x && y')])
+
+        obj.init = True
+        vcls = attr.make_class('Volume', ['host', 'container'])
+        obj.volumes = [vcls(host='/host', container='/container')]
+        ctx.commands = []
+        phase3.handle_docker_run(obj, ctx)
+        self.assertEqual(
+            ctx.commands,
+            [('sudo', 'docker', 'run', '--init', '--volume',
+              '/host:/container:z', 'myImage', 'sh', '-c', 'x && y')])
 
     def test_handle_ssh(self):
         cls = attr.make_class('Mock', ['identity', 'user', 'host', 'commands'])
