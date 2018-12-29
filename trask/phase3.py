@@ -26,12 +26,11 @@ class Context:
     def repath(self, path):
         return os.path.abspath(os.path.join(self.step.path, path))
 
-    def resolve(self, val):
-        if isinstance(val, types.Var):
-            return self.variables[val.name]
-        elif isinstance(val, types.Call):
-            return self.funcs[val.name].impl(val.args)
-        return val
+    def resolve(self, var):
+        return self.variables[var.name]
+
+    def call(self, call):
+        return self.funcs[call.name].impl(call.args)
 
 
 def docker_install_rust(recipe):
@@ -167,7 +166,7 @@ def resolve_value(val, ctx):
             if result not in val.data.choices:
                 raise phase2.InvalidChoice(result)
     elif isinstance(val.data, types.Call):
-        result = ctx.resolve(val.data)
+        result = ctx.call(val.data)
     else:
         raise TypeError('invalid value type')
 

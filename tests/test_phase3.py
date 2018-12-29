@@ -57,7 +57,7 @@ class TestResolveValue(unittest.TestCase):
         this = self
 
         class Context:
-            def resolve(self, call):
+            def call(self, call):
                 # pylint: disable=no-self-use
                 this.assertEqual(call.name, 'foo')
                 return 'myResult'
