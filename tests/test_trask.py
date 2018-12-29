@@ -293,7 +293,7 @@ class TestValue(unittest.TestCase):
         this = self
 
         class Context:
-            def call(self, call):
+            def resolve(self, call):
                 # pylint: disable=no-self-use
                 this.assertEqual(call.name, 'foo')
                 return 'myResult'
@@ -333,6 +333,12 @@ class TestPhase3Resolve(unittest.TestCase):
         ctx = phase3.Context()
         ctx.variables['foo'] = 'bar'
         self.assertEqual(phase3.resolve(phase2.Value(types.Var('foo')), ctx), 'bar')
+
+    def test_call(self):
+        ctx = phase3.Context()
+        os.environ['FOO'] = 'bar'
+        call = types.Call('env', ('FOO',))
+        self.assertEqual(phase3.resolve(phase2.Value(call), ctx), 'bar')
 
 
 class TestPhase3(unittest.TestCase):

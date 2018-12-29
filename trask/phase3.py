@@ -30,7 +30,7 @@ class Context:
         if isinstance(val, types.Var):
             return self.variables[val.name]
         elif isinstance(val, types.Call):
-            return self.funcs[val.name](self, val.args)
+            return self.funcs[val.name].impl(val.args)
         return val
 
 
