@@ -108,6 +108,11 @@ class TestResolve(unittest.TestCase):
         step = types.Step('foo', recipe, None)
         phase3.resolve_step(step, None)
 
+    def test_repath(self):
+        ctx = phase3.Context()
+        ctx.step = types.Step('foo', None, '/base')
+        self.assertEqual(ctx.repath('myPath'), '/base/myPath')
+
 
 def context_command_recorder():
     ctx = phase3.Context()
