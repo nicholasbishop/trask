@@ -121,6 +121,7 @@ class TestPhase3(unittest.TestCase):
         step = types.Step('set', obj, None)
         ctx = phase3.Context()
         phase3.handle_set(step, ctx)
+        self.assertEqual(ctx.variables, {'foo': 'bar'})
 
     def test_rust(self):
         obj = attr.make_class('Mock', ['channel'])(None)
