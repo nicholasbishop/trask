@@ -11,11 +11,6 @@ import attr
 from trask import functions, phase2, types
 
 
-def run_cmd(*cmd):
-    print(' '.join(cmd))
-    subprocess.check_call(cmd)
-
-
 class Context:
     def __init__(self, dry_run=True):
         self.variables = {}
@@ -31,6 +26,11 @@ class Context:
 
     def call(self, call):
         return self.funcs[call.name].impl(call.args)
+
+    def run_cmd(self, *cmd):
+        print(' '.join(cmd))
+        if not self.dry_run:
+            subprocess.check_call(cmd)
 
 
 def docker_install_rust(recipe):
@@ -76,7 +76,7 @@ def create_dockerfile(recipe):
     return '\n'.join(lines)
 
 
-def handle_docker_build(recipe, _):
+def handle_docker_build(recipe, ctx):
     cmd = ['docker', 'build']
     cmd = ['sudo'] + cmd  # TODO
     tag = recipe.tag
@@ -90,10 +90,10 @@ def handle_docker_build(recipe, _):
         cmd += ['--file', dockerfile_path]
         # cmd.append(ctx.repath(keys['path']))
         cmd.append(temp_dir)
-        run_cmd(*cmd)
+        ctx.run_cmd(*cmd)
 
 
-def handle_docker_run(keys):
+def handle_docker_run(recipe, ctx):
     cmd = ['docker', 'run']
     cmd = ['sudo'] + cmd  # TODO
     if keys.get('init') is True:
@@ -104,10 +104,10 @@ def handle_docker_run(keys):
         cmd += ['--volume', '{}:{}:z'.format(host, container)]
     cmd.append(keys['image'])
     cmd += ['sh', '-c', ' && '.join(keys['commands'])]
-    run_cmd(*cmd)
+    ctx.run_cmd(*cmd)
 
 
-def handle_create_temp_dir(keys):
+def handle_create_temp_dir(recipe):
     var = keys['var']
     temp_dir = tempfile.TemporaryDirectory()
     # TODO
@@ -151,10 +151,10 @@ def handle_set(recipe, ctx):
         ctx.variables[key] = val
 
 
-def handle_ssh(recipe, _):
+def handle_ssh(recipe, ctx):
     target = '{}@{}'.format(recipe.user, recipe.host)
     command = ' && '.join(recipe.commands)
-    run_cmd('ssh', '-i', recipe.identity, target, command)
+    ctx.run_cmd('ssh', '-i', recipe.identity, target, command)
 
 
 def resolve_value(val, ctx):

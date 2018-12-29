@@ -2,7 +2,6 @@
 
 import os
 import unittest
-from unittest import mock
 
 import attr
 
@@ -124,7 +123,8 @@ class TestPhase3(unittest.TestCase):
 
     def test_run_cmd(self):
         # pylint: disable=no-self-use
-        phase3.run_cmd('true')
+        ctx = phase3.Context(dry_run=False)
+        ctx.run_cmd('true')
 
     def test_set(self):
         cls = attr.make_class('SetMock', ['foo'])
@@ -154,12 +154,20 @@ class TestPhase3(unittest.TestCase):
         self.assertEqual(len(lines), 2)
         self.assertIn(obj.version, lines[1])
 
-    @mock.patch('trask.phase3.run_cmd')
-    def test_handle_ssh(self, mock_run):
-        # pylint: disable=no-self-use
+    def test_handle_ssh(self):
         cls = attr.make_class('Mock', ['identity', 'user', 'host', 'commands'])
         obj = cls(
             identity='/myId', user='me', host='myHost', commands=['a', 'b'])
-        phase3.handle_ssh(obj, None)
-        mock_run.assert_called_with('ssh', '-i', '/myId', 'me@myHost',
-                                    'a && b')
+
+        ctx = phase3.Context()
+        actual_args = None
+
+        def mock_run_cmd(*args):
+            nonlocal actual_args
+            actual_args = args
+
+        ctx.run_cmd = mock_run_cmd
+
+        phase3.handle_ssh(obj, ctx)
+        self.assertEqual(actual_args,
+                         ('ssh', '-i', '/myId', 'me@myHost', 'a && b'))
