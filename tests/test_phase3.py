@@ -98,6 +98,12 @@ class TestResolve(unittest.TestCase):
         obj = phase3.resolve(obj, None)
         self.assertEqual(obj.foo, 'bar')
 
+    def test_step(self):
+        cls = attr.make_class('MockRecipe', ())
+        recipe = cls()
+        step = types.Step('foo', recipe, None)
+        phase3.resolve_step(step, None)
+
 
 class TestPhase3(unittest.TestCase):
     def test_handlers(self):
