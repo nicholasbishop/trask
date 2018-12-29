@@ -68,23 +68,23 @@ class TestPhase2Primitives(unittest.TestCase):
     def test_bool(self):
         schema = phase2.MODEL.parse('bool', 'type')
         result = phase2.Phase2.load(schema, True)
-        self.assertEqual(result, phase2.Value(True))
+        self.assertEqual(result, types.Value(True))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, 'foo')
 
     def test_string(self):
         schema = phase2.MODEL.parse('string', 'type')
         result = phase2.Phase2.load(schema, 'myString')
-        self.assertEqual(result, phase2.Value('myString'))
+        self.assertEqual(result, types.Value('myString'))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
     def test_any(self):
         schema = phase2.MODEL.parse('any', 'type')
         result = phase2.Phase2.load(schema, 'myString')
-        self.assertEqual(result, phase2.Value('myString'))
+        self.assertEqual(result, types.Value('myString'))
         result = phase2.Phase2.load(schema, True)
-        self.assertEqual(result, phase2.Value(True))
+        self.assertEqual(result, types.Value(True))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, None)
 
@@ -102,14 +102,14 @@ class TestPhase2(unittest.TestCase):
     def test_path(self):
         schema = phase2.MODEL.parse('path', 'type')
         result = phase2.Phase2.load(schema, 'myPath')
-        self.assertEqual(result, phase2.Value('myPath', is_path=True))
+        self.assertEqual(result, types.Value('myPath', is_path=True))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
     def test_string_array(self):
         schema = phase2.MODEL.parse('string[]', 'type')
         result = phase2.Phase2.load(schema, ['a', 'b'])
-        self.assertEqual(result, [phase2.Value('a'), phase2.Value('b')])
+        self.assertEqual(result, [types.Value('a'), types.Value('b')])
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, 'foo')
         with self.assertRaises(phase2.TypeMismatch):
@@ -120,7 +120,7 @@ class TestPhase2(unittest.TestCase):
     def test_object(self):
         schema = phase2.MODEL.parse("{ foo: string; }", 'type')
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
-        self.assertEqual(result.foo, phase2.Value('bar'))
+        self.assertEqual(result.foo, types.Value('bar'))
         result = phase2.Phase2.load(schema, {})
         self.assertEqual(result.foo, None)
         with self.assertRaises(phase2.InvalidKey):
@@ -129,7 +129,7 @@ class TestPhase2(unittest.TestCase):
     def test_required_key(self):
         schema = phase2.MODEL.parse("{ required foo: string; }", 'type')
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
-        self.assertEqual(result.foo, phase2.Value('bar'))
+        self.assertEqual(result.foo, types.Value('bar'))
         with self.assertRaises(phase2.MissingKey):
             phase2.Phase2.load(schema, {})
 
@@ -137,12 +137,12 @@ class TestPhase2(unittest.TestCase):
         schema = phase2.MODEL.parse("{ *: string; }", 'type')
         phase2.Phase2.load(schema, {})
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
-        self.assertEqual(result.foo, phase2.Value('bar'))
+        self.assertEqual(result.foo, types.Value('bar'))
 
     def test_choice(self):
         schema = phase2.MODEL.parse("string choices('x', 'y')", 'type')
         result = phase2.Phase2.load(schema, 'x')
-        self.assertEqual(result, phase2.Value('x'))
+        self.assertEqual(result, types.Value('x'))
         with self.assertRaises(phase2.InvalidChoice):
             phase2.Phase2.load(schema, 'foo')
 
@@ -150,7 +150,7 @@ class TestPhase2(unittest.TestCase):
         schema = phase2.MODEL.parse('string', 'type')
         result = phase2.Phase2.load(schema, types.Var('x'),
                                     {'x': types.Kind.String})
-        self.assertEqual(result, phase2.Value(types.Var('x')))
+        self.assertEqual(result, types.Value(types.Var('x')))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, types.Var('x'), {'x': types.Kind.Bool})
         with self.assertRaises(phase2.UnboundVariable):
@@ -159,7 +159,7 @@ class TestPhase2(unittest.TestCase):
     def test_call(self):
         schema = phase2.MODEL.parse('string', 'type')
         result = phase2.Phase2.load(schema, types.Call('env', ('x', )))
-        self.assertEqual(result, phase2.Value(types.Call('env', ('x', ))))
+        self.assertEqual(result, types.Value(types.Call('env', ('x', ))))
         with self.assertRaises(phase2.InvalidFunction):
             phase2.Phase2.load(schema, types.Call('x', ()))
 
@@ -215,7 +215,7 @@ class TestPhase2(unittest.TestCase):
         schema = phase2.MODEL.parse('path', 'type')
         result = phase2.Phase2.load(schema, types.Call('env', ('key', )))
         self.assertEqual(
-            result, phase2.Value(types.Call('env', ('key', )), is_path=True))
+            result, types.Value(types.Call('env', ('key', )), is_path=True))
         with self.assertRaises(phase2.TypeMismatch):
             phase2.Phase2.load(schema, True)
 
@@ -250,11 +250,11 @@ class TestPhase2(unittest.TestCase):
 
 class TestResolveValue(unittest.TestCase):
     def test_bool(self):
-        self.assertEqual(phase3.resolve_value(phase2.Value(True), None), True)
-        self.assertEqual(phase3.resolve_value(phase2.Value(False), None), False)
+        self.assertEqual(phase3.resolve_value(types.Value(True), None), True)
+        self.assertEqual(phase3.resolve_value(types.Value(False), None), False)
 
     def test_string(self):
-        self.assertEqual(phase3.resolve_value(phase2.Value('foo'), None), 'foo')
+        self.assertEqual(phase3.resolve_value(types.Value('foo'), None), 'foo')
 
     def test_path(self):
         class Context:
@@ -263,7 +263,7 @@ class TestResolveValue(unittest.TestCase):
                 return os.path.join('/root', path)
 
         self.assertEqual(
-            phase3.resolve_value(phase2.Value('foo', is_path=True), Context()), '/root/foo')
+            phase3.resolve_value(types.Value('foo', is_path=True), Context()), '/root/foo')
 
     def test_var(self):
         this = self
@@ -275,7 +275,7 @@ class TestResolveValue(unittest.TestCase):
                 return 'myResult'
 
         self.assertEqual(
-            phase3.resolve_value(phase2.Value(types.Var('foo')), Context()), 'myResult')
+            phase3.resolve_value(types.Value(types.Var('foo')), Context()), 'myResult')
 
     def test_var_choices(self):
         class Context:
@@ -284,10 +284,10 @@ class TestResolveValue(unittest.TestCase):
                 return 'z'
 
         self.assertEqual(
-            phase3.resolve_value(phase2.Value(types.Var('foo', choices=('x', 'z'))), Context()),
+            phase3.resolve_value(types.Value(types.Var('foo', choices=('x', 'z'))), Context()),
             'z')
         with self.assertRaises(phase2.InvalidChoice):
-            phase3.resolve_value(phase2.Value(types.Var('foo', choices=('x', 'y'))), Context())
+            phase3.resolve_value(types.Value(types.Var('foo', choices=('x', 'y'))), Context())
 
     def test_call(self):
         this = self
@@ -299,11 +299,11 @@ class TestResolveValue(unittest.TestCase):
                 return 'myResult'
 
         self.assertEqual(
-            phase3.resolve_value(phase2.Value(types.Call('foo', ())), Context()), 'myResult')
+            phase3.resolve_value(types.Value(types.Call('foo', ())), Context()), 'myResult')
 
     def test_invalid_value(self):
         with self.assertRaises(TypeError):
-            phase3.resolve_value(phase2.Value(object()), None)
+            phase3.resolve_value(types.Value(object()), None)
 
 
 class TestFunctions(unittest.TestCase):
@@ -326,20 +326,20 @@ class TestMakeKeysSafe(unittest.TestCase):
 
 class TestPhase3Resolve(unittest.TestCase):
     def test_primitive(self):
-        self.assertEqual(phase3.resolve(phase2.Value(True), None), True)
-        self.assertEqual(phase3.resolve(phase2.Value('foo'), None), 'foo')
+        self.assertEqual(phase3.resolve(types.Value(True), None), True)
+        self.assertEqual(phase3.resolve(types.Value('foo'), None), 'foo')
 
     def test_var(self):
         ctx = phase3.Context()
         ctx.variables['foo'] = 'bar'
         self.assertEqual(
-            phase3.resolve(phase2.Value(types.Var('foo')), ctx), 'bar')
+            phase3.resolve(types.Value(types.Var('foo')), ctx), 'bar')
 
     def test_call(self):
         ctx = phase3.Context()
         os.environ['FOO'] = 'bar'
         call = types.Call('env', ('FOO', ))
-        self.assertEqual(phase3.resolve(phase2.Value(call), ctx), 'bar')
+        self.assertEqual(phase3.resolve(types.Value(call), ctx), 'bar')
 
 
 class TestPhase3(unittest.TestCase):

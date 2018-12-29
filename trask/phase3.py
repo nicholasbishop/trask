@@ -177,7 +177,7 @@ def resolve_value(val, ctx):
 
 
 def resolve(val, ctx):
-    if isinstance(val, phase2.Value):
+    if isinstance(val, types.Value):
         return resolve_value(val, ctx)
     elif isinstance(val, list):
         lst = []

@@ -26,6 +26,12 @@ class Step:
     path = attr.ib()
 
 
+@attr.s(frozen=True)
+class Value:
+    data = attr.ib()
+    is_path = attr.ib(default=False)
+
+
 @attr.s
 class Var:
     name = attr.ib()

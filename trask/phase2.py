@@ -33,12 +33,6 @@ class Key:
     is_required = attr.ib(default=False, cmp=False, hash=False)
 
 
-@attr.s(frozen=True)
-class Value:
-    data = attr.ib()
-    is_path = attr.ib(default=False)
-
-
 def make_keys_safe(dct):
     """Modify the keys in |dct| to be valid attribute names."""
     result = {}
@@ -99,25 +93,25 @@ class Phase2:
         # pylint: disable=no-self-use
         if val is None:
             raise TypeMismatch(path)
-        return Value(val)
+        return types.Value(val)
 
     def load_bool(self, _, val, path):
         # pylint: disable=no-self-use
         if not isinstance(val, bool):
             raise TypeMismatch(path)
-        return Value(val)
+        return types.Value(val)
 
     def load_string(self, _, val, path):
         # pylint: disable=no-self-use
         if not isinstance(val, str):
             raise TypeMismatch(path)
-        return Value(val)
+        return types.Value(val)
 
     def load_path(self, _, val, path):
         # pylint: disable=no-self-use
         if not isinstance(val, str):
             raise TypeMismatch(path)
-        return Value(val, is_path=True)
+        return types.Value(val, is_path=True)
 
     def load_array(self, schema, val, path):
         if not isinstance(val, list):
@@ -186,7 +180,7 @@ class Phase2:
                                            schema.kind):
                 raise TypeMismatch(path)
 
-            return Value(types.Var(val.name, choices=schema.choices), is_path)
+            return types.Value(types.Var(val.name, choices=schema.choices), is_path)
         elif isinstance(val, types.Call):
             if val.name not in self.functions:
                 raise InvalidFunction(path)
@@ -195,7 +189,7 @@ class Phase2:
 
                 raise TypeMismatch(path)
 
-            return Value(types.Call(val.name, val.args), is_path)
+            return types.Value(types.Call(val.name, val.args), is_path)
         else:
             result = {
                 types.Kind.Any: self.load_any,
