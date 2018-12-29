@@ -56,8 +56,8 @@ def docker_install_nodejs(recipe):
            'creationix/nvm/{}/install.sh'.format(nvm_version))
     return [
         'RUN curl -o- {} | bash'.format(url),
-        'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.
-        format(nodejs_version) + ' '.join(pkg)
+        'RUN . ~/.nvm/nvm.sh && nvm install {} && npm install -g '.format(
+            nodejs_version) + ' '.join(pkg)
     ]
 
 

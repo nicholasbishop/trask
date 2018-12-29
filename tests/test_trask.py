@@ -332,12 +332,13 @@ class TestPhase3Resolve(unittest.TestCase):
     def test_var(self):
         ctx = phase3.Context()
         ctx.variables['foo'] = 'bar'
-        self.assertEqual(phase3.resolve(phase2.Value(types.Var('foo')), ctx), 'bar')
+        self.assertEqual(
+            phase3.resolve(phase2.Value(types.Var('foo')), ctx), 'bar')
 
     def test_call(self):
         ctx = phase3.Context()
         os.environ['FOO'] = 'bar'
-        call = types.Call('env', ('FOO',))
+        call = types.Call('env', ('FOO', ))
         self.assertEqual(phase3.resolve(phase2.Value(call), ctx), 'bar')
 
 
