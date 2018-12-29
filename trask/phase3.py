@@ -107,7 +107,7 @@ def handle_docker_run(recipe, ctx):
     ctx.run_cmd(*cmd)
 
 
-def handle_create_temp_dir(recipe):
+def handle_create_temp_dir(recipe, ctx):
     var = keys['var']
     temp_dir = tempfile.TemporaryDirectory()
     # TODO
@@ -116,7 +116,7 @@ def handle_create_temp_dir(recipe):
     print('mkdir', temp_dir.name)
 
 
-def handle_copy(keys):
+def handle_copy(recipe, ctx):
     dst = ctx.resolve(keys['dst'])
     for src in keys['src']:
         src = ctx.resolve(src)
@@ -130,19 +130,15 @@ def handle_copy(keys):
             shutil.copy2(src, dst)
 
 
-def handle_upload(keys):
-    identity = ctx.resolve(keys['identity'])
-    user = ctx.resolve(keys['user'])
-    host = ctx.resolve(keys['host'])
-    src = ctx.resolve(keys['src'])
-    dst = ctx.resolve(keys['dst'])
-    replace = ctx.resolve(keys.get('replace', False))
-    target = '{}@{}'.format(user, host)
+def handle_upload(recipe, ctx):
+    target = '{}@{}'.format(recipe.user, recipe.host)
 
-    if replace is True:
-        run_cmd('ssh', '-i', identity, target, 'rm', '-fr', dst)
+    if recipe.replace is True:
+        ctx.run_cmd('ssh', '-i', recipe.identity, target, 'rm', '-fr',
+                    recipe.dst)
 
-    run_cmd('scp', '-i', identity, '-r', src, '{}:{}'.format(target, dst))
+    ctx.run_cmd('scp', '-i', recipe.identity, '-r', recipe.src, '{}:{}'.format(
+        target, recipe.dst))
 
 
 def handle_set(recipe, ctx):

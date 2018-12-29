@@ -174,6 +174,38 @@ class TestPhase3(unittest.TestCase):
         self.assertEqual(actual_args,
                          ('ssh', '-i', '/myId', 'me@myHost', 'a && b'))
 
+    def test_handle_update(self):
+        cls = attr.make_class(
+            'Mock', ['user', 'host', 'identity', 'replace', 'src', 'dst'])
+        obj = cls(
+            user='me',
+            host='myHost',
+            identity='/myId',
+            replace=False,
+            src='/src',
+            dst='/dst')
+
+        actual_args = []
+
+        def mock_run_cmd(*args):
+            actual_args.append(args)
+
+        ctx = phase3.Context()
+        ctx.run_cmd = mock_run_cmd
+
+        phase3.handle_upload(obj, ctx)
+        self.assertEqual(
+            actual_args,
+            [('scp', '-i', '/myId', '-r', '/src', 'me@myHost:/dst')])
+
+        obj.replace = True
+        actual_args = []
+        phase3.handle_upload(obj, ctx)
+        self.assertEqual(
+            actual_args,
+            [('ssh', '-i', '/myId', 'me@myHost', 'rm', '-fr', '/dst'),
+             ('scp', '-i', '/myId', '-r', '/src', 'me@myHost:/dst')])
+
     def test_run(self):
         cls = attr.make_class('MockSet', ['a'])
         recipe = cls(types.Value('b'))
