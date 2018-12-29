@@ -125,6 +125,8 @@ class TestPhase3(unittest.TestCase):
         # pylint: disable=no-self-use
         ctx = phase3.Context(dry_run=False)
         ctx.run_cmd('true')
+        ctx.dry_run = True
+        ctx.run_cmd('false')
 
     def test_set(self):
         cls = attr.make_class('SetMock', ['foo'])
