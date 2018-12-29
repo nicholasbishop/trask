@@ -164,7 +164,7 @@ def resolve_value(val, ctx):
     result = None
     if val.data is None:
         result = None
-    if isinstance(val.data, (bool, str)):
+    elif isinstance(val.data, (bool, str)):
         result = val.data
     elif isinstance(val.data, types.Var):
         result = ctx.resolve(val.data)

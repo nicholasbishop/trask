@@ -9,6 +9,9 @@ from trask import phase2, phase3, types
 
 
 class TestResolveValue(unittest.TestCase):
+    def test_none(self):
+        self.assertIs(phase3.resolve_value(types.Value(None), None), None)
+
     def test_bool(self):
         self.assertEqual(phase3.resolve_value(types.Value(True), None), True)
         self.assertEqual(phase3.resolve_value(types.Value(False), None), False)
