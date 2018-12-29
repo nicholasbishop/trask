@@ -248,13 +248,13 @@ class TestPhase2(unittest.TestCase):
     #     self.assertEqual(obj, 'baz')
 
 
-class TestValue(unittest.TestCase):
+class TestResolveValue(unittest.TestCase):
     def test_bool(self):
-        self.assertEqual(phase2.Value(True).get(None), True)
-        self.assertEqual(phase2.Value(False).get(None), False)
+        self.assertEqual(phase3.resolve_value(phase2.Value(True), None), True)
+        self.assertEqual(phase3.resolve_value(phase2.Value(False), None), False)
 
     def test_string(self):
-        self.assertEqual(phase2.Value('foo').get(None), 'foo')
+        self.assertEqual(phase3.resolve_value(phase2.Value('foo'), None), 'foo')
 
     def test_path(self):
         class Context:
@@ -263,7 +263,7 @@ class TestValue(unittest.TestCase):
                 return os.path.join('/root', path)
 
         self.assertEqual(
-            phase2.Value('foo', is_path=True).get(Context()), '/root/foo')
+            phase3.resolve_value(phase2.Value('foo', is_path=True), Context()), '/root/foo')
 
     def test_var(self):
         this = self
@@ -275,7 +275,7 @@ class TestValue(unittest.TestCase):
                 return 'myResult'
 
         self.assertEqual(
-            phase2.Value(types.Var('foo')).get(Context()), 'myResult')
+            phase3.resolve_value(phase2.Value(types.Var('foo')), Context()), 'myResult')
 
     def test_var_choices(self):
         class Context:
@@ -284,10 +284,10 @@ class TestValue(unittest.TestCase):
                 return 'z'
 
         self.assertEqual(
-            phase2.Value(types.Var('foo', choices=('x', 'z'))).get(Context()),
+            phase3.resolve_value(phase2.Value(types.Var('foo', choices=('x', 'z'))), Context()),
             'z')
         with self.assertRaises(phase2.InvalidChoice):
-            phase2.Value(types.Var('foo', choices=('x', 'y'))).get(Context())
+            phase3.resolve_value(phase2.Value(types.Var('foo', choices=('x', 'y'))), Context())
 
     def test_call(self):
         this = self
@@ -299,11 +299,11 @@ class TestValue(unittest.TestCase):
                 return 'myResult'
 
         self.assertEqual(
-            phase2.Value(types.Call('foo', ())).get(Context()), 'myResult')
+            phase3.resolve_value(phase2.Value(types.Call('foo', ())), Context()), 'myResult')
 
     def test_invalid_value(self):
         with self.assertRaises(TypeError):
-            phase2.Value(object()).get(None)
+            phase3.resolve_value(phase2.Value(object()), None)
 
 
 class TestFunctions(unittest.TestCase):

@@ -38,26 +38,6 @@ class Value:
     data = attr.ib()
     is_path = attr.ib(default=False)
 
-    def get(self, ctx):
-        result = None
-        if self.data is None:
-            result = None
-        if isinstance(self.data, (bool, str)):
-            result = self.data
-        elif isinstance(self.data, types.Var):
-            result = ctx.resolve(self.data)
-            if self.data.choices is not None:
-                if result not in self.data.choices:
-                    raise InvalidChoice(result)
-        elif isinstance(self.data, types.Call):
-            result = ctx.resolve(self.data)
-        else:
-            raise TypeError('invalid value type')
-
-        if self.is_path is True:
-            result = ctx.repath(result)
-        return result
-
 
 def make_keys_safe(dct):
     """Modify the keys in |dct| to be valid attribute names."""

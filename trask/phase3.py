@@ -155,9 +155,30 @@ def handle_ssh(ctx, obj):
     run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
 
 
+def resolve_value(val, ctx):
+    result = None
+    if val.data is None:
+        result = None
+    if isinstance(val.data, (bool, str)):
+        result = val.data
+    elif isinstance(val.data, types.Var):
+        result = ctx.resolve(val.data)
+        if val.data.choices is not None:
+            if result not in val.data.choices:
+                raise phase2.InvalidChoice(result)
+    elif isinstance(val.data, types.Call):
+        result = ctx.resolve(val.data)
+    else:
+        raise TypeError('invalid value type')
+
+    if val.is_path is True:
+        result = ctx.repath(result)
+    return result
+
+
 def resolve(val, ctx):
     if isinstance(val, phase2.Value):
-        return val.get(ctx)
+        return resolve_value(val, ctx)
     elif isinstance(val, list):
         lst = []
         for elem in val:
