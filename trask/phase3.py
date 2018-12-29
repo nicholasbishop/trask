@@ -184,8 +184,8 @@ def resolve(val, ctx):
             lst.append(resolve(elem, ctx))
         return lst
     else:
-        dct = attr.asdict(val)
-        for key, subval in dct:
+        dct = attr.asdict(val, recurse=False)
+        for key, subval in dct.items():
             setattr(val, key, resolve(subval, ctx))
         return val
 

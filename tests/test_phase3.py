@@ -71,7 +71,7 @@ class TestResolveValue(unittest.TestCase):
             phase3.resolve_value(types.Value(object()), None)
 
 
-class TestPhase3Resolve(unittest.TestCase):
+class TestResolve(unittest.TestCase):
     def test_primitive(self):
         self.assertEqual(phase3.resolve(types.Value(True), None), True)
         self.assertEqual(phase3.resolve(types.Value('foo'), None), 'foo')
@@ -88,6 +88,16 @@ class TestPhase3Resolve(unittest.TestCase):
         call = types.Call('env', ('FOO', ))
         self.assertEqual(phase3.resolve(types.Value(call), ctx), 'bar')
 
+    def test_list(self):
+        lst = [types.Value('x'), types.Value('y')]
+        self.assertEqual(phase3.resolve(lst, None), ['x', 'y'])
+
+    def test_object(self):
+        cls = attr.make_class('Mock', ['foo'])
+        obj = cls(types.Value('bar'))
+        obj = phase3.resolve(obj, None)
+        self.assertEqual(obj.foo, 'bar')
+
 
 class TestPhase3(unittest.TestCase):
     def test_run_cmd(self):
@@ -95,7 +105,7 @@ class TestPhase3(unittest.TestCase):
         phase3.run_cmd('true')
 
     def test_rust(self):
-        obj = attr.make_class('Mock', ['channel'])
+        obj = attr.make_class('Mock', ['channel'])(None)
         obj.channel = None
         lines1 = phase3.docker_install_rust(obj)
         obj.channel = 'stable'
@@ -109,9 +119,8 @@ class TestPhase3(unittest.TestCase):
             phase3.docker_install_rust(obj)
 
     def test_install_nodejs(self):
-        obj = attr.make_class('Mock', ['pkg', 'version'])
-        obj.version = '1.2.3'
-        obj.pkg = None
+        cls = attr.make_class('Mock', ['pkg', 'version'])
+        obj = cls(version='1.2.3', pkg=None)
         lines = phase3.docker_install_nodejs(obj)
         self.assertEqual(len(lines), 2)
         self.assertIn(obj.version, lines[1])
