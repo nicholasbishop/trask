@@ -128,9 +128,8 @@ class TestPhase3(unittest.TestCase):
     def test_set(self):
         cls = attr.make_class('SetMock', ['foo'])
         obj = cls('bar')
-        step = types.Step('set', obj, None)
         ctx = phase3.Context()
-        phase3.handle_set(step, ctx)
+        phase3.handle_set(obj, ctx)
         self.assertEqual(ctx.variables, {'foo': 'bar'})
 
     def test_rust(self):

@@ -145,8 +145,8 @@ def handle_upload(keys):
     run_cmd('scp', '-i', identity, '-r', src, '{}:{}'.format(target, dst))
 
 
-def handle_set(step, ctx):
-    dct = attr.asdict(step.recipe)
+def handle_set(recipe, ctx):
+    dct = attr.asdict(recipe)
     for key, val in dct.items():
         ctx.variables[key] = val
 
