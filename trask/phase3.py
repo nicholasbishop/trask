@@ -96,19 +96,19 @@ def handle_docker_build(recipe, ctx):
 def handle_docker_run(recipe, ctx):
     cmd = ['docker', 'run']
     cmd = ['sudo'] + cmd  # TODO
-    if keys.get('init') is True:
+    if recipe.init is True:
         cmd.append('--init')
-    for volume in keys.get('volumes', []):
-        host = volume['host']
-        container = volume['container']
+    for volume in recipe.volumes:
+        host = volume.host
+        container = volume.container
         cmd += ['--volume', '{}:{}:z'.format(host, container)]
-    cmd.append(keys['image'])
-    cmd += ['sh', '-c', ' && '.join(keys['commands'])]
+    cmd.append(recipe['image'])
+    cmd += ['sh', '-c', ' && '.join(recipe.commands)]
     ctx.run_cmd(*cmd)
 
 
 def handle_create_temp_dir(recipe, ctx):
-    var = keys['var']
+    var = recipe.var
     temp_dir = tempfile.TemporaryDirectory()
     # TODO
     # ctx.temp_dirs.append(temp_dir)
@@ -117,17 +117,17 @@ def handle_create_temp_dir(recipe, ctx):
 
 
 def handle_copy(recipe, ctx):
-    dst = ctx.resolve(keys['dst'])
-    for src in keys['src']:
-        src = ctx.resolve(src)
-        src = ctx.repath(src)
+    dst = recipe.dst
+    for src in recipe.src:
         if os.path.isdir(src):
             newdir = os.path.join(dst, os.path.basename(src))
             print('copy', src, newdir)
-            shutil.copytree(src, newdir)
+            if not ctx.dry_run:
+                shutil.copytree(src, newdir)
         else:
             print('copy', src, dst)
-            shutil.copy2(src, dst)
+            if not ctx.dry_run:
+                shutil.copy2(src, dst)
 
 
 def handle_upload(recipe, ctx):
