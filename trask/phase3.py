@@ -195,17 +195,24 @@ def resolve_step(step, ctx):
     return types.Step(step.name, recipe, step.path)
 
 
-def run(steps, ctx):
-    handlers = {
-        'docker-build': handle_docker_build,
-        'docker-run': handle_docker_run,
-        'create-temp-dir': handle_create_temp_dir,
-        'copy': handle_copy,
-        'ssh': handle_ssh,
-        'upload': handle_upload,
-    }
+def handle_set(step, ctx):
+    # TODO
+    pass
 
+
+HANDLERS = {
+    'copy': handle_copy,
+    'create-temp-dir': handle_create_temp_dir,
+    'docker-build': handle_docker_build,
+    'docker-run': handle_docker_run,
+    'set': handle_set,
+    'ssh': handle_ssh,
+    'upload': handle_upload,
+}
+
+
+def run(steps, ctx):
     for step in steps:
         rstep = resolve_step(step, ctx)
         ctx.step = rstep
-        handlers[rstep.name](rstep.recipe, ctx)
+        HANDLERS[rstep.name](rstep.recipe, ctx)

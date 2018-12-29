@@ -100,6 +100,17 @@ class TestResolve(unittest.TestCase):
 
 
 class TestPhase3(unittest.TestCase):
+    def test_handlers(self):
+        """Check that all of the steps in the schema have handlers."""
+        step_names = set()
+        for step in phase2.SCHEMA.array_type.fields:
+            step_names.add(step.name)
+
+        # Includes are expanded in phase1
+        step_names.remove('include')
+
+        self.assertEqual(step_names, phase3.HANDLERS.keys())
+
     def test_run_cmd(self):
         # pylint: disable=no-self-use
         phase3.run_cmd('true')
