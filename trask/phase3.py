@@ -8,7 +8,7 @@ import tempfile
 
 import attr
 
-from trask import functions, types
+from trask import functions, phase2, types
 
 
 def run_cmd(*cmd):
@@ -34,7 +34,7 @@ class Context:
         return val
 
 
-def docker_install_rust(recipe, _):
+def docker_install_rust(recipe):
     lines = [
         'RUN curl -o /rustup.sh https://sh.rustup.rs', 'RUN sh /rustup.sh -y',
         'ENV PATH=$PATH:/root/.cargo/bin'
@@ -48,7 +48,7 @@ def docker_install_rust(recipe, _):
     return lines
 
 
-def docker_install_nodejs(recipe, _):
+def docker_install_nodejs(recipe):
     nodejs_version = recipe.version
     pkg = recipe.pkg or []
     nvm_version = 'v0.33.11'
@@ -61,33 +61,32 @@ def docker_install_nodejs(recipe, _):
     ]
 
 
-def create_dockerfile(recipe, _):
+def create_dockerfile(recipe):
     lines = ['FROM ' + recipe.from_]
-    for recipe_name, recipe in obj['recipes'].items():
+    for recipe_name, subrecipe in recipe['recipes'].items():
         if recipe_name == 'yum-install':
-            lines.append('RUN yum install -y ' + ' '.join(recipe['pkg']))
+            lines.append('RUN yum install -y ' + ' '.join(subrecipe['pkg']))
         elif recipe_name == 'install-rust':
-            lines += docker_install_rust(recipe, ctx)
+            lines += docker_install_rust(subrecipe)
         elif recipe_name == 'install-nodejs':
-            lines += docker_install_nodejs(recipe, ctx)
+            lines += docker_install_nodejs(subrecipe)
         elif recipe_name == 'pip3-install':
-            lines.append('RUN pip3 install ' + ' '.join(recipe['pkg']))
+            lines.append('RUN pip3 install ' + ' '.join(subrecipe['pkg']))
 
-    lines.append('WORKDIR ' + obj['workdir'])
+    lines.append('WORKDIR ' + recipe.workdir)
     return '\n'.join(lines)
 
 
-def handle_docker_build(recipe, ctx):
+def handle_docker_build(recipe, _):
     cmd = ['docker', 'build']
     cmd = ['sudo'] + cmd  # TODO
-    tag = keys.get('tag')
+    tag = recipe.tag
     if tag is not None:
         cmd += ['--tag', tag]
     with tempfile.TemporaryDirectory() as temp_dir:
         dockerfile_path = os.path.join(temp_dir, 'Dockerfile')
         with open(dockerfile_path, 'w') as wfile:
-            wfile.write(create_dockerfile(keys))
-            print(create_dockerfile(keys))
+            wfile.write(create_dockerfile(recipe))
         # cmd += ['--file', ctx.repath(keys['file'])]
         cmd += ['--file', dockerfile_path]
         # cmd.append(ctx.repath(keys['path']))
@@ -157,7 +156,7 @@ def handle_ssh(ctx, obj):
 
 
 def resolve(val, ctx):
-    if isinstance(val, Value):
+    if isinstance(val, phase2.Value):
         return val.get(ctx)
     elif isinstance(val, list):
         lst = []

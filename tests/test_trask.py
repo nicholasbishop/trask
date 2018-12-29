@@ -324,6 +324,17 @@ class TestMakeKeysSafe(unittest.TestCase):
         self.assertEqual(phase2.make_keys_safe({'from': 1}), {'from_': 1})
 
 
+class TestPhase3Resolve(unittest.TestCase):
+    def test_primitive(self):
+        self.assertEqual(phase3.resolve(phase2.Value(True), None), True)
+        self.assertEqual(phase3.resolve(phase2.Value('foo'), None), 'foo')
+
+    def test_var(self):
+        ctx = phase3.Context()
+        ctx.variables['foo'] = 'bar'
+        self.assertEqual(phase3.resolve(phase2.Value(types.Var('foo')), ctx), 'bar')
+
+
 class TestPhase3(unittest.TestCase):
     def test_run_cmd(self):
         # pylint: disable=no-self-use
@@ -332,21 +343,21 @@ class TestPhase3(unittest.TestCase):
     def test_rust(self):
         obj = attr.make_class('Mock', ['channel'])
         obj.channel = None
-        lines1 = phase3.docker_install_rust(obj, None)
+        lines1 = phase3.docker_install_rust(obj)
         obj.channel = 'stable'
-        lines2 = phase3.docker_install_rust(obj, None)
+        lines2 = phase3.docker_install_rust(obj)
         obj.channel = 'nightly'
-        lines3 = phase3.docker_install_rust(obj, None)
+        lines3 = phase3.docker_install_rust(obj)
         self.assertEqual(lines1, lines2)
         self.assertEqual(len(lines1) + 1, len(lines3))
         with self.assertRaises(ValueError):
             obj.channel = 'badChannel'
-            phase3.docker_install_rust(obj, None)
+            phase3.docker_install_rust(obj)
 
     def test_install_nodejs(self):
         obj = attr.make_class('Mock', ['pkg', 'version'])
         obj.version = '1.2.3'
         obj.pkg = None
-        lines = phase3.docker_install_nodejs(obj, None)
+        lines = phase3.docker_install_nodejs(obj)
         self.assertEqual(len(lines), 2)
         self.assertIn(obj.version, lines[1])
