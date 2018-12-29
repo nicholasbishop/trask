@@ -115,6 +115,13 @@ class TestPhase3(unittest.TestCase):
         # pylint: disable=no-self-use
         phase3.run_cmd('true')
 
+    def test_set(self):
+        cls = attr.make_class('SetMock', ['foo'])
+        obj = cls('bar')
+        step = types.Step('set', obj, None)
+        ctx = phase3.Context()
+        phase3.handle_set(step, ctx)
+
     def test_rust(self):
         obj = attr.make_class('Mock', ['channel'])(None)
         obj.channel = None
