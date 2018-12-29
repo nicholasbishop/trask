@@ -152,6 +152,13 @@ class TestPhase3(unittest.TestCase):
         phase3.handle_set(obj, ctx)
         self.assertEqual(ctx.variables, {'foo': 'bar'})
 
+    def test_yum_install(self):
+        cls = attr.make_class('YumInstall', ['pkg'])
+        obj = cls(['a', 'b'])
+
+        lines = phase3.docker_yum_install(obj)
+        self.assertEqual(lines, 'RUN yum install -y a b')
+
     def test_rust(self):
         obj = attr.make_class('Mock', ['channel'])(None)
         obj.channel = None
