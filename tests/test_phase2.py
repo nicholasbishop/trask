@@ -5,6 +5,17 @@ import unittest
 from trask import phase2, types
 
 
+class TestMakeKeysSafe(unittest.TestCase):
+    def test_empty(self):
+        self.assertEqual(phase2.make_keys_safe({}), {})
+
+    def test_dash(self):
+        self.assertEqual(phase2.make_keys_safe({'-': 1}), {'_': 1})
+
+    def test_keyword(self):
+        self.assertEqual(phase2.make_keys_safe({'from': 1}), {'from_': 1})
+
+
 class TestPhase2Primitives(unittest.TestCase):
     def test_bool(self):
         schema = phase2.MODEL.parse('bool', 'type')
