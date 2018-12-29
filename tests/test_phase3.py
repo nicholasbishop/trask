@@ -116,6 +116,7 @@ def context_command_recorder():
     def run_cmd(self, *cmd):
         self.commands.append(cmd)
 
+    # pylint: disable=assignment-from-no-return
     ctx.run_cmd = run_cmd.__get__(ctx, phase3.Context)
     return ctx
 
