@@ -180,7 +180,8 @@ class Phase2:
                                            schema.kind):
                 raise TypeMismatch(path)
 
-            return types.Value(types.Var(val.name, choices=schema.choices), is_path)
+            return types.Value(
+                types.Var(val.name, choices=schema.choices), is_path)
         elif isinstance(val, types.Call):
             if val.name not in self.functions:
                 raise InvalidFunction(path)

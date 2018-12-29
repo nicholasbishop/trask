@@ -4,6 +4,7 @@ import unittest
 
 from trask import phase2, types
 
+
 class TestPhase2Primitives(unittest.TestCase):
     def test_bool(self):
         schema = phase2.MODEL.parse('bool', 'type')

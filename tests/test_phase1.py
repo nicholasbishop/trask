@@ -6,6 +6,7 @@ from pyfakefs import fake_filesystem_unittest
 
 from trask import phase1, types
 
+
 class TestGrammar(unittest.TestCase):
     def test_bool(self):
         self.assertIs(phase1.MODEL.parse('true', 'boolean'), True)

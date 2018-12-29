@@ -7,6 +7,7 @@ import attr
 
 from trask import phase2, phase3, types
 
+
 class TestResolveValue(unittest.TestCase):
     def test_bool(self):
         self.assertEqual(phase3.resolve_value(types.Value(True), None), True)
@@ -22,7 +23,8 @@ class TestResolveValue(unittest.TestCase):
                 return os.path.join('/root', path)
 
         self.assertEqual(
-            phase3.resolve_value(types.Value('foo', is_path=True), Context()), '/root/foo')
+            phase3.resolve_value(types.Value('foo', is_path=True), Context()),
+            '/root/foo')
 
     def test_var(self):
         this = self
@@ -34,7 +36,8 @@ class TestResolveValue(unittest.TestCase):
                 return 'myResult'
 
         self.assertEqual(
-            phase3.resolve_value(types.Value(types.Var('foo')), Context()), 'myResult')
+            phase3.resolve_value(types.Value(types.Var('foo')), Context()),
+            'myResult')
 
     def test_var_choices(self):
         class Context:
@@ -43,10 +46,12 @@ class TestResolveValue(unittest.TestCase):
                 return 'z'
 
         self.assertEqual(
-            phase3.resolve_value(types.Value(types.Var('foo', choices=('x', 'z'))), Context()),
+            phase3.resolve_value(
+                types.Value(types.Var('foo', choices=('x', 'z'))), Context()),
             'z')
         with self.assertRaises(phase2.InvalidChoice):
-            phase3.resolve_value(types.Value(types.Var('foo', choices=('x', 'y'))), Context())
+            phase3.resolve_value(
+                types.Value(types.Var('foo', choices=('x', 'y'))), Context())
 
     def test_call(self):
         this = self
@@ -58,7 +63,8 @@ class TestResolveValue(unittest.TestCase):
                 return 'myResult'
 
         self.assertEqual(
-            phase3.resolve_value(types.Value(types.Call('foo', ())), Context()), 'myResult')
+            phase3.resolve_value(
+                types.Value(types.Call('foo', ())), Context()), 'myResult')
 
     def test_invalid_value(self):
         with self.assertRaises(TypeError):
