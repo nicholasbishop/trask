@@ -2,6 +2,7 @@
 
 import os
 import unittest
+from unittest import mock
 
 import attr
 
@@ -152,3 +153,12 @@ class TestPhase3(unittest.TestCase):
         lines = phase3.docker_install_nodejs(obj)
         self.assertEqual(len(lines), 2)
         self.assertIn(obj.version, lines[1])
+
+    @mock.patch('trask.phase3.run_cmd')
+    def test_handle_ssh(self, mock_run):
+        cls = attr.make_class('Mock', ['identity', 'user', 'host', 'commands'])
+        obj = cls(
+            identity='/myId', user='me', host='myHost', commands=['a', 'b'])
+        phase3.handle_ssh(obj, None)
+        mock_run.assert_called_with('ssh', '-i', '/myId', 'me@myHost',
+                                    'a && b')

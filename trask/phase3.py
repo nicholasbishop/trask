@@ -151,13 +151,10 @@ def handle_set(step, ctx):
         ctx.variables[key] = val
 
 
-def handle_ssh(ctx, obj):
-    identity = ctx.resolve(obj['identity'])
-    user = ctx.resolve(obj['user'])
-    host = ctx.resolve(obj['host'])
-    commands = obj['commands']
-    target = '{}@{}'.format(user, host)
-    run_cmd('ssh', '-i', identity, target, ' && '.join(commands))
+def handle_ssh(recipe, _):
+    target = '{}@{}'.format(recipe.user, recipe.host)
+    command = ' && '.join(recipe.commands)
+    run_cmd('ssh', '-i', recipe.identity, target, command)
 
 
 def resolve_value(val, ctx):
