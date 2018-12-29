@@ -103,6 +103,7 @@ class TestResolve(unittest.TestCase):
         self.assertEqual(obj.foo, 'bar')
 
     def test_step(self):
+        # pylint: disable=no-self-use
         cls = attr.make_class('MockRecipe', ())
         recipe = cls()
         step = types.Step('foo', recipe, None)
@@ -155,6 +156,7 @@ class TestPhase3(unittest.TestCase):
 
     @mock.patch('trask.phase3.run_cmd')
     def test_handle_ssh(self, mock_run):
+        # pylint: disable=no-self-use
         cls = attr.make_class('Mock', ['identity', 'user', 'host', 'commands'])
         obj = cls(
             identity='/myId', user='me', host='myHost', commands=['a', 'b'])
