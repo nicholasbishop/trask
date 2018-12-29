@@ -171,3 +171,11 @@ class TestPhase3(unittest.TestCase):
         phase3.handle_ssh(obj, ctx)
         self.assertEqual(actual_args,
                          ('ssh', '-i', '/myId', 'me@myHost', 'a && b'))
+
+    def test_run(self):
+        cls = attr.make_class('MockSet', ['a'])
+        recipe = cls(types.Value('b'))
+        steps = [types.Step('set', recipe, None)]
+        ctx = phase3.Context()
+        phase3.run(steps, ctx)
+        self.assertEqual(ctx.variables, {'a': 'b'})
