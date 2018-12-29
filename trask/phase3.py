@@ -145,6 +145,12 @@ def handle_upload(keys):
     run_cmd('scp', '-i', identity, '-r', src, '{}:{}'.format(target, dst))
 
 
+def handle_set(step, ctx):
+    dct = attr.asdict(step.recipe)
+    for key, val in dct.items():
+        ctx.variables[key] = val
+
+
 def handle_ssh(ctx, obj):
     identity = ctx.resolve(obj['identity'])
     user = ctx.resolve(obj['user'])
@@ -193,11 +199,6 @@ def resolve(val, ctx):
 def resolve_step(step, ctx):
     recipe = resolve(step.recipe, ctx)
     return types.Step(step.name, recipe, step.path)
-
-
-def handle_set(step, ctx):
-    # TODO
-    pass
 
 
 HANDLERS = {
