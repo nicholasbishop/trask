@@ -152,53 +152,6 @@ class TestPhase3(unittest.TestCase):
         phase3.handle_set(obj, ctx)
         self.assertEqual(ctx.variables, {'foo': 'bar'})
 
-    def test_yum_install(self):
-        cls = attr.make_class('YumInstall', ['pkg'])
-        obj = cls(['a', 'b'])
-
-        lines = phase3.docker_yum_install(obj)
-        self.assertEqual(lines, 'RUN yum install -y a b')
-
-    def test_rust(self):
-        obj = attr.make_class('Mock', ['channel'])(None)
-        obj.channel = None
-        lines1 = phase3.docker_install_rust(obj)
-        obj.channel = 'stable'
-        lines2 = phase3.docker_install_rust(obj)
-        obj.channel = 'nightly'
-        lines3 = phase3.docker_install_rust(obj)
-        self.assertEqual(lines1, lines2)
-        self.assertEqual(len(lines1) + 1, len(lines3))
-        with self.assertRaises(ValueError):
-            obj.channel = 'badChannel'
-            phase3.docker_install_rust(obj)
-
-    def test_install_nodejs(self):
-        cls = attr.make_class('Mock', ['pkg', 'version'])
-        obj = cls(version='1.2.3', pkg=None)
-        lines = phase3.docker_install_nodejs(obj)
-        self.assertEqual(len(lines), 2)
-        self.assertIn(obj.version, lines[1])
-
-    def test_handle_docker_run(self):
-        cls = attr.make_class('Mock', ['init', 'volumes', 'image', 'commands'])
-        obj = cls(init=False, volumes=[], image='myImage', commands=['x', 'y'])
-        ctx = context_command_recorder()
-        phase3.handle_docker_run(obj, ctx)
-        self.assertEqual(
-            ctx.commands,
-            [('sudo', 'docker', 'run', 'myImage', 'sh', '-c', 'x && y')])
-
-        obj.init = True
-        vcls = attr.make_class('Volume', ['host', 'container'])
-        obj.volumes = [vcls(host='/host', container='/container')]
-        ctx.commands = []
-        phase3.handle_docker_run(obj, ctx)
-        self.assertEqual(
-            ctx.commands,
-            [('sudo', 'docker', 'run', '--init', '--volume',
-              '/host:/container:z', 'myImage', 'sh', '-c', 'x && y')])
-
     def test_handle_ssh(self):
         cls = attr.make_class('Mock', ['identity', 'user', 'host', 'commands'])
         obj = cls(
@@ -256,3 +209,52 @@ class TestPhase3(unittest.TestCase):
         ctx = phase3.Context()
         phase3.run(steps, ctx)
         self.assertEqual(ctx.variables, {'a': 'b'})
+
+
+class TestDocker(unittest.TestCase):
+    def test_yum_install(self):
+        cls = attr.make_class('YumInstall', ['pkg'])
+        obj = cls(['a', 'b'])
+
+        lines = phase3.docker_yum_install(obj)
+        self.assertEqual(lines, 'RUN yum install -y a b')
+
+    def test_rust(self):
+        obj = attr.make_class('Mock', ['channel'])(None)
+        obj.channel = None
+        lines1 = phase3.docker_install_rust(obj)
+        obj.channel = 'stable'
+        lines2 = phase3.docker_install_rust(obj)
+        obj.channel = 'nightly'
+        lines3 = phase3.docker_install_rust(obj)
+        self.assertEqual(lines1, lines2)
+        self.assertEqual(len(lines1) + 1, len(lines3))
+        with self.assertRaises(ValueError):
+            obj.channel = 'badChannel'
+            phase3.docker_install_rust(obj)
+
+    def test_install_nodejs(self):
+        cls = attr.make_class('Mock', ['pkg', 'version'])
+        obj = cls(version='1.2.3', pkg=None)
+        lines = phase3.docker_install_nodejs(obj)
+        self.assertEqual(len(lines), 2)
+        self.assertIn(obj.version, lines[1])
+
+    def test_handle_docker_run(self):
+        cls = attr.make_class('Mock', ['init', 'volumes', 'image', 'commands'])
+        obj = cls(init=False, volumes=[], image='myImage', commands=['x', 'y'])
+        ctx = context_command_recorder()
+        phase3.handle_docker_run(obj, ctx)
+        self.assertEqual(
+            ctx.commands,
+            [('sudo', 'docker', 'run', 'myImage', 'sh', '-c', 'x && y')])
+
+        obj.init = True
+        vcls = attr.make_class('Volume', ['host', 'container'])
+        obj.volumes = [vcls(host='/host', container='/container')]
+        ctx.commands = []
+        phase3.handle_docker_run(obj, ctx)
+        self.assertEqual(
+            ctx.commands,
+            [('sudo', 'docker', 'run', '--init', '--volume',
+              '/host:/container:z', 'myImage', 'sh', '-c', 'x && y')])
