@@ -157,18 +157,11 @@ class TestPhase3(unittest.TestCase):
         obj = cls(
             identity='/myId', user='me', host='myHost', commands=['a', 'b'])
 
-        ctx = phase3.Context()
-        actual_args = None
-
-        def mock_run_cmd(*args):
-            nonlocal actual_args
-            actual_args = args
-
-        ctx.run_cmd = mock_run_cmd
+        ctx = context_command_recorder()
 
         phase3.handle_ssh(obj, ctx)
-        self.assertEqual(actual_args,
-                         ('ssh', '-i', '/myId', 'me@myHost', 'a && b'))
+        self.assertEqual(ctx.commands,
+                         [('ssh', '-i', '/myId', 'me@myHost', 'a && b')])
 
     def test_handle_update(self):
         cls = attr.make_class(
@@ -181,24 +174,18 @@ class TestPhase3(unittest.TestCase):
             src='/src',
             dst='/dst')
 
-        actual_args = []
-
-        def mock_run_cmd(*args):
-            actual_args.append(args)
-
-        ctx = phase3.Context()
-        ctx.run_cmd = mock_run_cmd
+        ctx = context_command_recorder()
 
         phase3.handle_upload(obj, ctx)
         self.assertEqual(
-            actual_args,
+            ctx.commands,
             [('scp', '-i', '/myId', '-r', '/src', 'me@myHost:/dst')])
 
         obj.replace = True
-        actual_args = []
+        ctx.commands = []
         phase3.handle_upload(obj, ctx)
         self.assertEqual(
-            actual_args,
+            ctx.commands,
             [('ssh', '-i', '/myId', 'me@myHost', 'rm', '-fr', '/dst'),
              ('scp', '-i', '/myId', '-r', '/src', 'me@myHost:/dst')])
 
