@@ -245,7 +245,11 @@ class TestDocker(unittest.TestCase):
         subrecipes = cls()
         cls = attr.make_class('Mock', ['from_', 'recipes', 'workdir'])
         obj = cls('baseImage', subrecipes, None)
-        phase3.create_dockerfile(obj)
+        lines = phase3.create_dockerfile(obj)
+        self.assertEqual(lines, 'FROM baseImage')
+        obj.workdir = '/test'
+        lines = phase3.create_dockerfile(obj)
+        self.assertEqual(lines, 'FROM baseImage\nWORKDIR /test')
 
     def test_handle_docker_run(self):
         cls = attr.make_class('Mock', ['init', 'volumes', 'image', 'commands'])
