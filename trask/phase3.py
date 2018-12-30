@@ -64,18 +64,24 @@ def docker_yum_install(recipe):
     return 'RUN yum install -y ' + ' '.join(recipe.pkg)
 
 
+def docker_pip3_install(recipe):
+    return 'RUN pip3 install ' + ' '.join(recipe.pkg)
+
+
 def create_dockerfile(recipe):
     lines = ['FROM ' + recipe.from_]
-    subrecipes = attr.asdict(recipe.recipes)
-    for recipe_name, subrecipe in subrecipes.items():
-        if recipe_name == 'yum-install':
-            lines.append(docker_yum_install(subrecipe))
-        elif recipe_name == 'install-rust':
-            lines += docker_install_rust(subrecipe)
-        elif recipe_name == 'install-nodejs':
-            lines += docker_install_nodejs(subrecipe)
-        elif recipe_name == 'pip3-install':
-            lines.append('RUN pip3 install ' + ' '.join(subrecipe.pkg))
+    yum = recipe.recipes.yum_install
+    nodejs = recipe.recipes.install_nodejs
+    rust = recipe.recipes.install_rust
+    pip3 = recipe.recipes.pip3_install
+    if yum:
+        lines.append(docker_yum_install(yum))
+    if rust:
+        lines += docker_install_rust(rust)
+    if nodejs:
+        lines += docker_install_nodejs(nodejs)
+    if pip3:
+        lines.append(docker_pip3_install(pip3))
 
     if recipe.workdir is not None:
         lines.append('WORKDIR ' + recipe.workdir)

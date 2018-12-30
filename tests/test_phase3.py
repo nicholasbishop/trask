@@ -2,6 +2,7 @@
 
 import os
 import unittest
+from unittest import mock
 
 import attr
 
@@ -227,9 +228,17 @@ class TestDocker(unittest.TestCase):
         self.assertEqual(len(lines), 2)
         self.assertIn(obj.version, lines[1])
 
+    def test_pip3_install(self):
+        cls = attr.make_class('Mock', ['pkg'])
+        obj = cls(pkg=['a', 'b'])
+        line = phase3.docker_pip3_install(obj)
+        self.assertEqual(line, 'RUN pip3 install a b')
+
     def test_create_dockerfile(self):
-        cls = attr.make_class('MockRecipes', [])
-        subrecipes = cls()
+        cls = attr.make_class(
+            'MockRecipes',
+            ['install_nodejs', 'install_rust', 'yum_install', 'pip3_install'])
+        subrecipes = cls(None, None, None, None)
         cls = attr.make_class('Mock', ['from_', 'recipes', 'workdir'])
         obj = cls('baseImage', subrecipes, None)
         lines = phase3.create_dockerfile(obj)
@@ -237,6 +246,24 @@ class TestDocker(unittest.TestCase):
         obj.workdir = '/test'
         lines = phase3.create_dockerfile(obj)
         self.assertEqual(lines, 'FROM baseImage\nWORKDIR /test')
+
+    @mock.patch('trask.phase3.docker_yum_install')
+    @mock.patch('trask.phase3.docker_install_rust')
+    @mock.patch('trask.phase3.docker_install_nodejs')
+    @mock.patch('trask.phase3.docker_pip3_install')
+    def test_create_dockerfile_mock(self, pip3, nodejs, rust, yum):
+        pip3.return_value = 'pip3'
+        nodejs.return_value = ['nodejs']
+        rust.return_value = ['rust']
+        yum.return_value = 'yum'
+        cls = attr.make_class(
+            'MockRecipes',
+            ['install_nodejs', 'install_rust', 'yum_install', 'pip3_install'])
+        subrecipes = cls('a', 'b', 'c', 'd')
+        cls = attr.make_class('Mock', ['from_', 'recipes', 'workdir'])
+        obj = cls('baseImage', subrecipes, None)
+        text = phase3.create_dockerfile(obj)
+        self.assertEqual(text, 'FROM baseImage\nyum\nrust\nnodejs\npip3')
 
     def test_handle_docker_run(self):
         cls = attr.make_class('Mock', ['init', 'volumes', 'image', 'commands'])
