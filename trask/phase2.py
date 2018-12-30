@@ -78,16 +78,39 @@ def does_substition_match(type1, type2):
             or type1 == types.Kind.Any or type2 == types.Kind.Any)
 
 
+def convert_to_camel_case(string):
+    result = ''
+    cap_next = True
+    for char in string:
+        if char in ('-', '_'):
+            cap_next = True
+        elif cap_next:
+            cap_next = False
+            result += char.upper()
+    return result
+
+
+def class_name_from_path(path):
+    name = ''
+    for item in path:
+        if isinstance(item, int):
+            continue
+        name += convert_to_camel_case(item)
+    return name
+
+
 @attr.s(init=False)
 class Phase2:
     step = attr.ib()
     variables = attr.ib()
     functions = attr.ib()
+    classes = attr.ib()
 
     def __init__(self):
         self.step = None
         self.variables = {}
         self.functions = functions.get_functions()
+        self.classes = {}
 
     def load_any(self, _, val, path):
         # pylint: disable=no-self-use
@@ -142,6 +165,15 @@ class Phase2:
                     raise SchemaError('invalid variable type')
         return types.Step(val.name, fields, val.path)
 
+    def get_or_make_class(self, temp_obj, path):
+        temp_obj = make_keys_safe(temp_obj)
+        cls_name = class_name_from_path(path)
+        cls = self.classes.get(cls_name)
+        if cls is None:
+            cls = attr.make_class(cls_name, list(temp_obj.keys()))
+            self.classes[cls_name] = cls
+        return cls
+
     def load_object(self, schema, val, path):
         if isinstance(val, types.Step):
             return self.load_step(schema, val, path)
@@ -167,8 +199,7 @@ class Phase2:
                 if key.is_required:
                     if key.name not in val:
                         raise MissingKey(path)
-            temp_obj = make_keys_safe(temp_obj)
-            cls = attr.make_class('SchemaClass', list(temp_obj.keys()))
+            cls = self.get_or_make_class(temp_obj, path)
             return cls(**temp_obj)
 
     def load_one(self, schema, val, path):
