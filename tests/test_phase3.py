@@ -240,6 +240,13 @@ class TestDocker(unittest.TestCase):
         self.assertEqual(len(lines), 2)
         self.assertIn(obj.version, lines[1])
 
+    def test_create_dockerfile(self):
+        cls = attr.make_class('MockRecipes', [])
+        subrecipes = cls()
+        cls = attr.make_class('Mock', ['from_', 'recipes', 'workdir'])
+        obj = cls('baseImage', subrecipes, None)
+        phase3.create_dockerfile(obj)
+
     def test_handle_docker_run(self):
         cls = attr.make_class('Mock', ['init', 'volumes', 'image', 'commands'])
         obj = cls(init=False, volumes=[], image='myImage', commands=['x', 'y'])

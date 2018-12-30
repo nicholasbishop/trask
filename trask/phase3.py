@@ -66,7 +66,8 @@ def docker_yum_install(recipe):
 
 def create_dockerfile(recipe):
     lines = ['FROM ' + recipe.from_]
-    for recipe_name, subrecipe in recipe.recipes.items():
+    subrecipes = attr.asdict(recipe.recipes)
+    for recipe_name, subrecipe in subrecipes.items():
         if recipe_name == 'yum-install':
             lines.append(docker_yum_install(subrecipe))
         elif recipe_name == 'install-rust':
