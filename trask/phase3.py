@@ -17,6 +17,7 @@ class Context:
         self.funcs = functions.get_functions()
         self.dry_run = dry_run
         self.step = None
+        self.temp_dirs = []
 
     def repath(self, path):
         return os.path.abspath(os.path.join(self.step.path, path))
@@ -122,8 +123,8 @@ def handle_docker_run(recipe, ctx):
 def handle_create_temp_dir(recipe, ctx):
     var = recipe.var
     temp_dir = tempfile.TemporaryDirectory()
-    # TODO
-    # ctx.temp_dirs.append(temp_dir)
+    # TODO, clean these up explicitly
+    ctx.temp_dirs.append(temp_dir)
     ctx.variables[var] = temp_dir.name
     print('mkdir', temp_dir.name)
 

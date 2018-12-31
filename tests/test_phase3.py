@@ -5,6 +5,7 @@ import unittest
 from unittest import mock
 
 import attr
+from pyfakefs import fake_filesystem_unittest
 
 from trask import phase2, phase3, types
 
@@ -297,7 +298,8 @@ class TestDocker(unittest.TestCase):
         self.assertEqual(len(ctx.commands), 1)
         cmd = ctx.commands[0]
 
-        self.assertEqual(cmd[0:6], ('sudo', 'docker', 'build', '--tag', 'myTag', '--file'))
+        self.assertEqual(
+            cmd[0:6], ('sudo', 'docker', 'build', '--tag', 'myTag', '--file'))
 
         obj.tag = None
         ctx.commands = []
@@ -307,3 +309,63 @@ class TestDocker(unittest.TestCase):
         cmd = ctx.commands[0]
 
         self.assertEqual(cmd[0:4], ('sudo', 'docker', 'build', '--file'))
+
+
+class TestTempDir(fake_filesystem_unittest.TestCase):
+    def setUp(self):
+        self.setUpPyfakefs()
+
+    def test_handle_create_temp_dir(self):
+        cls = attr.make_class('Mock', ['var'])
+        obj = cls('myVar')
+        ctx = phase3.Context()
+        phase3.handle_create_temp_dir(obj, ctx)
+        path = ctx.variables['myVar']
+        self.assertTrue(os.path.exists(path))
+        self.assertEqual(ctx.temp_dirs[0].name, path)
+
+
+class TestCopy(fake_filesystem_unittest.TestCase):
+    def setUp(self):
+        self.setUpPyfakefs()
+        self.cls = attr.make_class('Mock', ['src', 'dst'])
+
+    def test_copy_file(self):
+        self.fs.create_file('/srcFile')
+        self.fs.create_dir('/dstDir')
+
+        obj = self.cls(['/srcFile'], '/dstDir')
+        ctx = phase3.Context(dry_run=False)
+        phase3.handle_copy(obj, ctx)
+
+        self.assertTrue(os.path.exists('/dstDir/srcFile'))
+
+    def test_copy_file_dry(self):
+        self.fs.create_file('/srcFile')
+        self.fs.create_dir('/dstDir')
+
+        obj = self.cls(['/srcFile'], '/dstDir')
+        ctx = phase3.Context(dry_run=True)
+        phase3.handle_copy(obj, ctx)
+
+        self.assertFalse(os.path.exists('/dstDir/srcFile'))
+
+    def test_copy_dir(self):
+        self.fs.create_dir('/srcDir')
+        self.fs.create_dir('/dstDir')
+
+        obj = self.cls(['/srcDir'], '/dstDir')
+        ctx = phase3.Context(dry_run=False)
+        phase3.handle_copy(obj, ctx)
+
+        self.assertTrue(os.path.exists('/dstDir/srcDir/'))
+
+    def test_copy_dir_dry(self):
+        self.fs.create_dir('/srcDir')
+        self.fs.create_dir('/dstDir')
+
+        obj = self.cls(['/srcDir'], '/dstDir')
+        ctx = phase3.Context(dry_run=True)
+        phase3.handle_copy(obj, ctx)
+
+        self.assertFalse(os.path.exists('/dstDir/srcDir/'))
