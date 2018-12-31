@@ -1,4 +1,4 @@
-# trask
+# trask [![Build Status](https://travis-ci.org/nicholasbishop/trask.svg?branch=master)](https://travis-ci.org/nicholasbishop/trask)
 
 Declarative recipe-based task runner
 
