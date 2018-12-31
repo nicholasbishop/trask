@@ -23,3 +23,8 @@ class TestInit(fake_filesystem_unittest.TestCase):
     def test_run(self):
         self.fs.create_file('/myFile.trask')
         trask.run('/myFile.trask', dry_run=True)
+
+    def test_parse_args(self):
+        args = trask.parse_args(['/myFile.trask'])
+        self.assertEqual(args.dry_run, False)
+        self.assertEqual(args.path, '/myFile.trask')

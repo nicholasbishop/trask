@@ -17,9 +17,10 @@ def run(path, dry_run):
     phase3.run(root, ctx)
 
 
-def parse_args():
+def parse_args(args=None):
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         prog='trask', description='run a trask file')
     parser.add_argument('-n', '--dry-run', action='store_true')
     parser.add_argument('path')
-    return parser.parse_args()
+    return parser.parse_args(args)
