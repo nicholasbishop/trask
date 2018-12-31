@@ -283,3 +283,27 @@ class TestDocker(unittest.TestCase):
             ctx.commands,
             [('sudo', 'docker', 'run', '--init', '--volume',
               '/host:/container:z', 'myImage', 'sh', '-c', 'x && y')])
+
+    @mock.patch('trask.phase3.create_dockerfile')
+    def test_handle_docker_build(self, mock_dock):
+        mock_dock.return_value = 'mockContents'
+
+        cls = attr.make_class('Mock', ['tag'])
+        obj = cls('myTag')
+
+        ctx = context_command_recorder()
+        phase3.handle_docker_build(obj, ctx)
+
+        self.assertEqual(len(ctx.commands), 1)
+        cmd = ctx.commands[0]
+
+        self.assertEqual(cmd[0:6], ('sudo', 'docker', 'build', '--tag', 'myTag', '--file'))
+
+        obj.tag = None
+        ctx.commands = []
+        phase3.handle_docker_build(obj, ctx)
+
+        self.assertEqual(len(ctx.commands), 1)
+        cmd = ctx.commands[0]
+
+        self.assertEqual(cmd[0:4], ('sudo', 'docker', 'build', '--file'))
