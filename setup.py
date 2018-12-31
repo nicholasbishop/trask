@@ -10,7 +10,7 @@ def long_description():
 
 setuptools.setup(
     name='trask',
-    version='1.0.2',
+    version='1.1.0',
     description='Declarative recipe-based task runner',
     long_description=long_description(),
     long_description_content_type='text/markdown',
