@@ -17,5 +17,8 @@ setuptools.setup(
     url='https://github.com/nicholasbishop/trask',
     author='Nicholas Bishop',
     author_email='nicholasbishop@gmail.com',
-    py_modules=['trask'],
+    packages=['trask'],
+    package_data={
+        'trask': ['schema'],
+    },
     install_requires=['attrs', 'tatsu'])
