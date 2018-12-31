@@ -5,7 +5,7 @@ import setuptools
 
 def long_description():
     with open('README.md') as rfile:
-        return f.read()
+        return rfile.read()
 
 
 setuptools.setup(
