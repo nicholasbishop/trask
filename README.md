@@ -2,6 +2,8 @@
 
 Declarative recipe-based task runner
 
+[Schema](trask/schema)
+
 ## Example
 
 ```
