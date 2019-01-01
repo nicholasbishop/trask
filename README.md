@@ -2,6 +2,10 @@
 
 Declarative recipe-based task runner
 
+Usage:
+
+    python3 -m trask [--dry-run] <path>
+
 [Schema](trask/schema)
 
 ## Example
