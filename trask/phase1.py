@@ -61,7 +61,7 @@ def expand_includes(step, path):
         new_path = os.path.abspath(os.path.join(dirname, rel_path))
         return load(new_path)
     else:
-        step.path = path
+        step.path = os.path.dirname(path)
         return [step]
 
 

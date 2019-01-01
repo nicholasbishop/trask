@@ -58,3 +58,8 @@ class TestPhase1(fake_filesystem_unittest.TestCase):
         self.fs.create_file('/a', contents="include { file myVar }")
         with self.assertRaises(TypeError):
             phase1.load('/a')
+
+    def test_step_path(self):
+        self.fs.create_file('/a/b/c.trask', contents="set {}")
+        result = phase1.load('/a/b/c.trask')
+        self.assertEqual(result[0].path, '/a/b')
