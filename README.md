@@ -6,7 +6,8 @@ Usage:
 
     python3 -m trask [--dry-run] <path>
 
-[Schema](trask/schema)
+- [Schema](trask/schema)
+- [Emacs mode](trask.el)
 
 ## Example
 
