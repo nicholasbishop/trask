@@ -74,7 +74,7 @@ class TestPhase2(unittest.TestCase):
         result = phase2.Phase2.load(schema, {'foo': 'bar'})
         self.assertEqual(result.foo, types.Value('bar'))
         result = phase2.Phase2.load(schema, {})
-        self.assertEqual(result.foo, None)
+        self.assertEqual(result.foo, types.Value(None))
         with self.assertRaises(phase2.InvalidKey):
             phase2.Phase2.load(schema, {'bad-key': 'bar'})
 

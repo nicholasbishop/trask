@@ -163,7 +163,7 @@ class Phase2:
                                                   val[key], subpath)
             for key in schema.fields:
                 if key.name not in temp_obj and key.name != '*':
-                    temp_obj[key.name] = None
+                    temp_obj[key.name] = types.Value(None)
                 if key.is_required:
                     if key.name not in val:
                         raise MissingKey(path)
