@@ -1,0 +1,28 @@
+docker-build {
+  tag 'sample1'
+  from 'amazonlinux:2'
+  recipes {
+    yum-install {
+      pkg [ 'gcc' 'openssl-devel' ]
+    }
+    install-rust {
+      channel 'nightly'
+    }
+  }
+  workdir '/app'
+}
+
+docker-run {
+  image 'sample1'
+  init true
+  volumes [
+    {
+      host '..'
+      container '/app'
+    }
+  ]
+  commands [
+    'cargo build --release'
+    'cargo test --release'
+  ]
+}

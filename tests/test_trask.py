@@ -28,3 +28,9 @@ class TestInit(fake_filesystem_unittest.TestCase):
         args = trask.parse_args(['/myFile.trask'])
         self.assertEqual(args.dry_run, False)
         self.assertEqual(args.path, '/myFile.trask')
+
+
+class TestDryRun(unittest.TestCase):
+    def test_sample1(self):
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        trask.run(os.path.join(script_dir, 'sample1.trask'), dry_run=True)
