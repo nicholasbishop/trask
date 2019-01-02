@@ -57,7 +57,7 @@ copy {
 set {
   user 'nbishop'
   host '12.34.56.78'
-  identity env(SSH_KEY_PATH')
+  identity env('SSH_KEY_PATH')
 }
 
 upload {
